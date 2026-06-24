@@ -1,0 +1,36 @@
+//go:build !cloudflare
+
+package project
+
+import (
+	"fmt"
+	"strings"
+
+	_const "github.com/apito-io/engine/const"
+	"gitlab.com/apito.io/open_driver/project/mariadb"
+	"gitlab.com/apito.io/open_driver/project/mysql"
+	"gitlab.com/apito.io/open_driver/project/postgres"
+	"gitlab.com/apito.io/open_driver/project/sqlite"
+	"github.com/apito-io/engine/interfaces"
+	"github.com/apito-io/engine/models"
+)
+
+// GetProjectSQLDriver routes to the per-engine project driver package.
+func GetProjectSQLDriver(cfg *models.Config, cred *models.DriverCredentials) (interfaces.ProjectDBInterface, error) {
+	if cred == nil {
+		return nil, fmt.Errorf("driver credentials are required")
+	}
+	engine := strings.ToLower(strings.TrimSpace(cred.Engine))
+	switch engine {
+	case strings.ToLower(_const.SQLiteDriver):
+		return sqlite.GetDriver(cfg, cred)
+	case strings.ToLower(_const.PostgreSQLDriver):
+		return postgres.GetDriver(cfg, cred)
+	case strings.ToLower(_const.MySQLDriver):
+		return mysql.GetDriver(cfg, cred)
+	case strings.ToLower(_const.MariaDBDriver):
+		return mariadb.GetDriver(cfg, cred)
+	default:
+		return nil, fmt.Errorf("unsupported SQL engine: %s", cred.Engine)
+	}
+}
