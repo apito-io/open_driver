@@ -111,9 +111,12 @@ func AlterTableAddFieldSQL(engine, tableName string, f *models.FieldInfo) ([]str
 				tq := sqlcommon.QuotePGIdent(tableName)
 				cq := sqlcommon.QuotePGIdent(column)
 				out = append(out, fmt.Sprintf(`ALTER TABLE %s ADD COLUMN IF NOT EXISTS %s %s%s`, tq, cq, datatype, valSuffix))
-			default:
+			case _const.MySQLDriver, _const.MariaDBDriver:
 				t := strings.ReplaceAll(tableName, "`", "``")
-				out = append(out, fmt.Sprintf("ALTER TABLE `%s` ADD COLUMN IF NOT EXISTS %s %s%s", t, column, datatype, valSuffix))
+				cq := sqlcommon.QuotePGIdent(column)
+				out = append(out, fmt.Sprintf("ALTER TABLE `%s` ADD COLUMN IF NOT EXISTS %s %s%s", t, cq, datatype, valSuffix))
+			default:
+				out = append(out, sqliteLikeAlterTableAddColumnStmts(tableName, column, datatype, valSuffix)...)
 			}
 		}
 		return out, nil
@@ -131,26 +134,25 @@ func AlterTableAddFieldSQL(engine, tableName string, f *models.FieldInfo) ([]str
 	default:
 		// SQLite / libsql / unknown: SQLite does NOT support UNIQUE in ALTER TABLE ADD COLUMN.
 		// Strategy: add column without UNIQUE, then create a UNIQUE INDEX separately.
-		t := strings.ReplaceAll(tableName, "`", "``")
-		cleanSuffix := strings.ReplaceAll(valSuffix, "UNIQUE", "")
-		cleanSuffix = strings.TrimSpace(cleanSuffix)
-		
-		var stmts []string
-		// Add column without UNIQUE constraint
-		stmt := fmt.Sprintf("ALTER TABLE `%s` ADD %s %s%s", t, f.Identifier, datatype, cleanSuffix)
-		stmts = append(stmts, stmt)
-		// If original valSuffix contained UNIQUE, add a separate UNIQUE index
-		if strings.Contains(valSuffix, "UNIQUE") {
-			idxName := fmt.Sprintf("idx_%s_%s", utility.PhysicalSQLTableName(tableName), f.Identifier)
-			// SQLite identifier quoting: variables already contain quotes
-			idxQ := sqlcommon.QuotePGIdent(idxName)
-			tableQ := strings.ReplaceAll(tableName, "`", "``") // backtick-quoted: `table_name`
-			colQ := strings.ReplaceAll(f.Identifier, "`", "``") // backtick-quoted: `col_name`
-			// Note: tableQ and colQ already include backticks, so don't add extra in format string
-			stmts = append(stmts, fmt.Sprintf("CREATE UNIQUE INDEX IF NOT EXISTS %s ON %s(%s)", idxQ, tableQ, colQ))
-		}
-		return stmts, nil
+		return sqliteLikeAlterTableAddColumnStmts(tableName, f.Identifier, datatype, valSuffix), nil
 	}
+}
+
+func sqliteLikeAlterTableAddColumnStmts(tableName, column, datatype, valSuffix string) []string {
+	t := strings.ReplaceAll(tableName, "`", "``")
+	cleanSuffix := strings.ReplaceAll(valSuffix, "UNIQUE", "")
+	cleanSuffix = strings.TrimSpace(cleanSuffix)
+
+	var stmts []string
+	stmts = append(stmts, fmt.Sprintf("ALTER TABLE `%s` ADD %s %s%s", t, column, datatype, cleanSuffix))
+	if strings.Contains(valSuffix, "UNIQUE") {
+		idxName := fmt.Sprintf("idx_%s_%s", utility.PhysicalSQLTableName(tableName), column)
+		idxQ := sqlcommon.QuotePGIdent(idxName)
+		tableQ := strings.ReplaceAll(tableName, "`", "``")
+		colQ := strings.ReplaceAll(column, "`", "``")
+		stmts = append(stmts, fmt.Sprintf("CREATE UNIQUE INDEX IF NOT EXISTS %s ON %s(%s)", idxQ, tableQ, colQ))
+	}
+	return stmts
 }
 
 func isDuplicateSQLColumnError(err error) bool {

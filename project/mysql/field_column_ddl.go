@@ -111,9 +111,19 @@ func AlterTableAddFieldSQL(engine, tableName string, f *models.FieldInfo) ([]str
 				tq := QuotePGIdent(tableName)
 				cq := QuotePGIdent(column)
 				out = append(out, fmt.Sprintf(`ALTER TABLE %s ADD COLUMN IF NOT EXISTS %s %s%s`, tq, cq, datatype, valSuffix))
+			case _const.MySQLDriver, _const.MariaDBDriver:
+				t := strings.ReplaceAll(tableName, "`", "``")
+				cq := QuotePGIdent(column)
+				out = append(out, fmt.Sprintf("ALTER TABLE `%s` ADD COLUMN IF NOT EXISTS %s %s%s", t, cq, datatype, valSuffix))
 			default:
 				t := strings.ReplaceAll(tableName, "`", "``")
-				out = append(out, fmt.Sprintf("ALTER TABLE `%s` ADD COLUMN IF NOT EXISTS %s %s%s", t, column, datatype, valSuffix))
+				cleanSuffix := strings.TrimSpace(strings.ReplaceAll(valSuffix, "UNIQUE", ""))
+				out = append(out, fmt.Sprintf("ALTER TABLE `%s` ADD `%s` %s%s", t, strings.ReplaceAll(column, "`", "``"), datatype, func() string {
+					if cleanSuffix == "" {
+						return ""
+					}
+					return " " + cleanSuffix
+				}()))
 			}
 		}
 		return out, nil

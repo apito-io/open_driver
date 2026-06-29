@@ -621,6 +621,9 @@ func (d *Driver) AddFieldToModel(ctx context.Context, param *models.CommonSystem
 	err = d.runDDLBatch(ctx, func(db bun.IDB) error {
 		for _, query := range stmts {
 			if err := d.execRawDDL(ctx, db, query); err != nil {
+				if isDuplicateSQLColumnError(err) {
+					continue
+				}
 				return err
 			}
 		}

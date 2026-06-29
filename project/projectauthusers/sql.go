@@ -158,6 +158,11 @@ CREATE TABLE IF NOT EXISTS %s (
 		}
 		for _, q := range indexes {
 			if _, err := db.ExecContext(ctx, q); err != nil {
+				// Legacy tenant DBs may already contain duplicate emails/phones; optional unique
+				// indexes cannot be created until data is repaired — do not block CRUD on that.
+				if strings.Contains(q, "UNIQUE INDEX") {
+					continue
+				}
 				return err
 			}
 		}

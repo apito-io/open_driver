@@ -36,6 +36,32 @@ func TestAlterTableAddFieldSQL_sqliteUniqueSplitsAlterAndIndex(t *testing.T) {
 	}
 }
 
+func TestAlterTableAddFieldSQL_sqliteLocalsNoIfNotExists(t *testing.T) {
+	f := &models.FieldInfo{
+		Identifier: "bio",
+		FieldType:  _const.MultilineField,
+		InputType:  _const.StringInput,
+		Validation: &models.Validation{
+			Locals: []string{"en", "bn"},
+		},
+	}
+	for _, engine := range []string{_const.SQLiteDriver, "libsql"} {
+		stmts, err := AlterTableAddFieldSQL(engine, "tenant", f)
+		if err != nil {
+			t.Fatalf("%s: %v", engine, err)
+		}
+		if len(stmts) != 2 {
+			t.Fatalf("%s: want 2 locale columns, got %d: %#v", engine, len(stmts), stmts)
+		}
+		for _, stmt := range stmts {
+			up := strings.ToUpper(stmt)
+			if strings.Contains(up, "IF NOT EXISTS") {
+				t.Fatalf("%s: sqlite locals ALTER must not use IF NOT EXISTS: %q", engine, stmt)
+			}
+		}
+	}
+}
+
 func TestAlterTableAddFieldSQL_postgresKeepsUniqueInline(t *testing.T) {
 	f := &models.FieldInfo{
 		Identifier: "slug",

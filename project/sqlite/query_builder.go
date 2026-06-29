@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
-	qutility "gitlab.com/apito.io/open_driver/utility"
 	"github.com/apito-io/engine/models"
 	"github.com/apito-io/engine/utility"
 	"github.com/apito-io/types"
 	"github.com/graph-gophers/dataloader"
 	"github.com/tailor-platform/graphql"
+	qutility "gitlab.com/apito.io/open_driver/utility"
 )
 
 // mergeGroupedSQLPredicates builds `(pred AND …)` groups from ConditionBuilder / hook output.
@@ -513,6 +513,193 @@ func FilterBuilder(variable string, where map[string]interface{}, modelType *mod
 	return conditions, nil
 }
 
+func publicRelationConnectionForKey(model *models.ModelType, relationKey string) *models.ConnectionType {
+	if model == nil {
+		return nil
+	}
+	relationKey = strings.TrimSpace(relationKey)
+	for _, conn := range model.Connections {
+		if conn == nil {
+			continue
+		}
+		if strings.TrimSpace(conn.KnownAs) == relationKey {
+			return conn
+		}
+		if utility.ModelIDMatchesGraphQLField(conn.Model, relationKey) {
+			return conn
+		}
+		if utility.SingularResourceName(conn.Model) == relationKey {
+			return conn
+		}
+	}
+	return nil
+}
+
+func relationIDFilterPredicates(alias string, filterMap map[string]interface{}, sqlArgs *[]interface{}) ([]string, error) {
+	idFilter, ok := filterMap["_id"]
+	if !ok || idFilter == nil {
+		return nil, nil
+	}
+	idMap, ok := idFilter.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid relation _id filter shape")
+	}
+	var preds []string
+	for suffix, value := range idMap {
+		op, ok := filterSQLComparator(suffix)
+		if !ok {
+			continue
+		}
+		switch suffix {
+		case "in", "not_in":
+			arr, ok := value.([]interface{})
+			if !ok || len(arr) == 0 {
+				if suffix == "in" {
+					preds = append(preds, "0=1")
+				} else {
+					preds = append(preds, "1=1")
+				}
+				continue
+			}
+			placeholders := strings.TrimSuffix(strings.Repeat("?,", len(arr)), ",")
+			preds = append(preds, fmt.Sprintf(`%s.id %s (%s)`, alias, op, placeholders))
+			if sqlArgs != nil {
+				for _, v := range arr {
+					*sqlArgs = append(*sqlArgs, v)
+				}
+			}
+		default:
+			preds = append(preds, fmt.Sprintf(`%s.id %s ?`, alias, op))
+			if sqlArgs != nil {
+				*sqlArgs = append(*sqlArgs, value)
+			}
+		}
+	}
+	return preds, nil
+}
+
+func relatedModelFilterPredicates(alias string, filterMap map[string]interface{}, relatedModel *models.ModelType, sqlArgs *[]interface{}) ([]string, error) {
+	if len(filterMap) == 0 {
+		return nil, nil
+	}
+	var preds []string
+	idPreds, err := relationIDFilterPredicates(alias, filterMap, sqlArgs)
+	if err != nil {
+		return nil, err
+	}
+	preds = append(preds, idPreds...)
+	fieldFilters := make(map[string]interface{}, len(filterMap))
+	for k, v := range filterMap {
+		if k == "_id" {
+			continue
+		}
+		fieldFilters[k] = v
+	}
+	if len(fieldFilters) > 0 {
+		fieldPreds, err := FilterBuilder(alias, fieldFilters, relatedModel, sqlArgs)
+		if err != nil {
+			return nil, err
+		}
+		preds = append(preds, fieldPreds...)
+	}
+	return preds, nil
+}
+
+func publicRelationFilterPredicates(param *models.CommonSystemParams, sqlArgs *[]interface{}) ([]string, error) {
+	if param == nil || param.ResolveParams == nil || param.Model == nil {
+		return nil, nil
+	}
+	relationArg, ok := param.ResolveParams.Args["relation"].(map[string]interface{})
+	if !ok || len(relationArg) == 0 {
+		return nil, nil
+	}
+	if len(param.ProjectSchemaModels) == 0 {
+		return nil, errors.New("project schema models are required for relation filters")
+	}
+
+	var preds []string
+	for relationKey, rawFilter := range relationArg {
+		filterMap, ok := rawFilter.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("invalid relation filter shape for %s", relationKey)
+		}
+		conn := publicRelationConnectionForKey(param.Model, relationKey)
+		if conn == nil {
+			return nil, fmt.Errorf("relation %q not found on model %q", relationKey, param.Model.Name)
+		}
+		relatedModel := findSchemaModel(param.ProjectSchemaModels, conn.Model)
+		if relatedModel == nil {
+			return nil, fmt.Errorf("relation model %q not found for %q", conn.Model, relationKey)
+		}
+
+		alias := fmt.Sprintf("rel_%d", len(preds))
+		relatedPreds, err := relatedModelFilterPredicates(alias, filterMap, relatedModel, sqlArgs)
+		if err != nil {
+			return nil, err
+		}
+		if len(relatedPreds) == 0 {
+			continue
+		}
+
+		knownAs := strings.TrimSpace(conn.KnownAs)
+		relatedTable := utility.PhysicalSQLTableName(relatedModel.Name)
+		listedFK, listedHasFK := fkPhysicalColumnOnModelToTarget(param.Model, relatedModel.Name, knownAs)
+		relatedFK, relatedHasFK := fkPhysicalColumnOnModelToTarget(relatedModel, param.Model.Name, knownAs)
+		inferredListedFK := relationFKColumnNameParts(relatedModel.Name, knownAs)
+		inferredRelatedFK := relationFKColumnNameParts(param.Model.Name, knownAs)
+		isManyToMany := sqlConnectionIsTrueManyToMany(param.ProjectSchemaModels, param.Model.Name, relatedModel.Name)
+		if !listedHasFK && conn.Relation == "has_one" && inferredListedFK != "" {
+			listedFK = inferredListedFK
+			listedHasFK = true
+		}
+		if !relatedHasFK && conn.Relation == "has_many" && !isManyToMany && inferredRelatedFK != "" {
+			relatedFK = inferredRelatedFK
+			relatedHasFK = true
+		}
+		switch {
+		case listedHasFK:
+			preds = append(preds, fmt.Sprintf(
+				"EXISTS (SELECT 1 FROM `%s` AS %s WHERE %s.id = `x`.`%s` AND %s)",
+				relatedTable,
+				alias,
+				alias,
+				listedFK,
+				strings.Join(relatedPreds, " AND "),
+			))
+		case isManyToMany:
+			pivotAlias := fmt.Sprintf("relp_%d", len(preds))
+			pivotTable := relationPivotTableNameParts(param.Model.Name, relatedModel.Name, knownAs)
+			listedPivotCol := utility.PhysicalSQLTableName(param.Model.Name) + "_id"
+			relatedPivotCol := utility.PhysicalSQLTableName(relatedModel.Name) + "_id"
+			preds = append(preds, fmt.Sprintf(
+				"EXISTS (SELECT 1 FROM `%s` AS %s JOIN `%s` AS %s ON %s.id = %s.`%s` WHERE %s.`%s` = `x`.id AND %s)",
+				pivotTable,
+				pivotAlias,
+				relatedTable,
+				alias,
+				alias,
+				pivotAlias,
+				relatedPivotCol,
+				pivotAlias,
+				listedPivotCol,
+				strings.Join(relatedPreds, " AND "),
+			))
+		case relatedHasFK:
+			preds = append(preds, fmt.Sprintf(
+				"EXISTS (SELECT 1 FROM `%s` AS %s WHERE %s.`%s` = `x`.id AND %s)",
+				relatedTable,
+				alias,
+				alias,
+				relatedFK,
+				strings.Join(relatedPreds, " AND "),
+			))
+		default:
+			return nil, fmt.Errorf("could not resolve SQL relation path for %s.%s", param.Model.Name, relationKey)
+		}
+	}
+	return preds, nil
+}
+
 func CommonDocTransformation(model *models.ModelType, local string, result map[string]interface{}, classification *FieldClassification) (*types.DefaultDocumentStructure, error) {
 
 	doc := types.DefaultDocumentStructure{
@@ -900,6 +1087,13 @@ func RootResolverQueryBuilder(cfg *models.Config, param *models.CommonSystemPara
 	filters, err := ConditionBuilder("x", param.ResolveParams.Args, param.Model, &sqlArgs)
 	if err != nil {
 		return "", nil, err
+	}
+	relationPreds, err := publicRelationFilterPredicates(param, &sqlArgs)
+	if err != nil {
+		return "", nil, err
+	}
+	if len(relationPreds) > 0 {
+		filters["AND"] = append(filters["AND"], relationPreds...)
 	}
 
 	// filter based on roles
