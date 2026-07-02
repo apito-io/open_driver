@@ -123,7 +123,13 @@ func (d *Driver) RelationshipDataLoaderBytes(ctx context.Context, param *models.
 		if !ok {
 			continue
 		}
-		doc, err := CommonDocTransformation(param.Model, "en", res, classification)
+		var doc *types.DefaultDocumentStructure
+		var err error
+		if models.ModelIsProjectAuthUserModel(param.Model) {
+			doc, err = models.ProjectAuthUserRowToDocument(param.Model, res)
+		} else {
+			doc, err = CommonDocTransformation(param.Model, "en", res, classification)
+		}
 		if err != nil || doc == nil {
 			continue
 		}
@@ -197,7 +203,13 @@ func (d *Driver) RelationshipDataLoader(ctx context.Context, param *models.Commo
 		if !ok {
 			continue
 		}
-		doc, err := CommonDocTransformation(param.Model, "en", res, classification)
+		var doc *types.DefaultDocumentStructure
+		var err error
+		if models.ModelIsProjectAuthUserModel(param.Model) {
+			doc, err = models.ProjectAuthUserRowToDocument(param.Model, res)
+		} else {
+			doc, err = CommonDocTransformation(param.Model, "en", res, classification)
+		}
 		if err != nil || doc == nil {
 			continue
 		}

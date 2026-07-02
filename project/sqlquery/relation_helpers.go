@@ -103,5 +103,20 @@ func fkPhysicalColumnOnModelToTarget(holder *models.ModelType, targetModelName, 
 			return phys, true
 		}
 	}
+	known := strings.TrimSpace(knownAs)
+	for _, conn := range holder.Connections {
+		if conn == nil || conn.Relation != "has_one" {
+			continue
+		}
+		if known != "" && strings.TrimSpace(conn.KnownAs) != known {
+			continue
+		}
+		if !utility.ModelIDMatchesGraphQLField(conn.Model, targetModelName) {
+			continue
+		}
+		if col := relationFKColumnNameParts(conn.Model, conn.KnownAs); col == want {
+			return col, true
+		}
+	}
 	return "", false
 }

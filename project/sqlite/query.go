@@ -16,6 +16,7 @@ import (
 	"github.com/apito-io/types"
 	"github.com/tailor-platform/graphql"
 	"github.com/uptrace/bun"
+	"gitlab.com/apito.io/open_driver/project/sqlquery"
 )
 
 func (d *Driver) maybeEnsureRelationDDL(ctx context.Context, param *models.CommonSystemParams) error {
@@ -689,9 +690,23 @@ func (d *Driver) GetSingleProjectDocument(ctx context.Context, param *models.Com
 		local = val
 	}
 
+	tableName := utility.PhysicalSQLTableName(param.Model.Name)
+
+	if models.ModelIsProjectAuthUserModel(param.Model) {
+		query := sqlquery.ProjectAuthUserSingleDocQuery(tableName, local, param.Model)
+		result := map[string]interface{}{}
+		err := d.ORM.NewRaw(query, param.DocumentID).Scan(ctx, &result)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil, nil
+			}
+			return nil, err
+		}
+		return models.ProjectAuthUserRowToDocument(param.Model, result)
+	}
+
 	returnType := SelectBuilder("y", local, param.Model, false)
 
-	tableName := utility.PhysicalSQLTableName(param.Model.Name)
 	result := map[string]interface{}{}
 	hookWhere, hookArgs, err := singleDocHookWhereSQLAndArgs(d.Conf, ctx, param)
 	if err != nil {
@@ -1039,9 +1054,18 @@ func (d *Driver) QueryMultiDocumentOfProject(ctx context.Context, param *models.
 
 	var docs []*types.DefaultDocumentStructure
 	for _, res := range result {
-		doc, err := CommonDocTransformation(param.Model, local, res, classification)
+		var doc *types.DefaultDocumentStructure
+		var err error
+		if models.ModelIsProjectAuthUserModel(param.Model) {
+			doc, err = models.ProjectAuthUserRowToDocument(param.Model, res)
+		} else {
+			doc, err = CommonDocTransformation(param.Model, local, res, classification)
+		}
 		if err != nil {
 			return nil, err
+		}
+		if doc == nil {
+			continue
 		}
 		doc.Type = param.Model.Name
 		docs = append(docs, doc)

@@ -22,6 +22,18 @@ func TestFkPhysicalColumnOnModelToTarget(t *testing.T) {
 	require.False(t, ok)
 }
 
+func TestFkPhysicalColumnOnModelToTargetFromConnection(t *testing.T) {
+	book := &models.ModelType{
+		Name: "book",
+		Connections: []*models.ConnectionType{
+			{Model: "users", Relation: "has_one"},
+		},
+	}
+	col, ok := fkPhysicalColumnOnModelToTarget(book, "users", "")
+	require.True(t, ok)
+	require.Equal(t, "users_id", col)
+}
+
 func TestSqlConnectionAnchorModelName(t *testing.T) {
 	require.Equal(t, "person", sqlConnectionAnchorModelName("forward", "person", "work"))
 	require.Equal(t, "work", sqlConnectionAnchorModelName("backward", "person", "work"))

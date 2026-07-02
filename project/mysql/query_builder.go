@@ -860,13 +860,23 @@ func RootResolverQueryBuilder(cfg *models.Config, param *models.CommonSystemPara
 			if len(param.ProjectSchemaModels) > 0 {
 				anchorMT := findSchemaModel(param.ProjectSchemaModels, anchorM)
 				if col, ok := fkPhysicalColumnOnModelToTarget(listedMT, anchorM, knownAs); ok {
-					connPreds = append(connPreds, fmt.Sprintf("`x`.`%s` = ?", col))
-					connArgs = append(connArgs, anchorID)
+					if intersect {
+						connPreds = append(connPreds, fmt.Sprintf("(`x`.`%s` IS NULL OR `x`.`%s` != ?)", col, col))
+						connArgs = append(connArgs, anchorID)
+					} else {
+						connPreds = append(connPreds, fmt.Sprintf("`x`.`%s` = ?", col))
+						connArgs = append(connArgs, anchorID)
+					}
 				} else if anchorMT != nil {
 					if col, ok := fkPhysicalColumnOnModelToTarget(anchorMT, listedMT.Name, knownAs); ok {
 						anchTbl := utility.PhysicalSQLTableName(anchorM)
-						connPreds = append(connPreds, fmt.Sprintf("EXISTS (SELECT 1 FROM `%s` AS anch WHERE anch.id = ? AND anch.`%s` = `x`.`id`)", anchTbl, col))
-						connArgs = append(connArgs, anchorID)
+						if intersect {
+							connPreds = append(connPreds, fmt.Sprintf("NOT EXISTS (SELECT 1 FROM `%s` AS anch WHERE anch.id = ? AND anch.`%s` = `x`.`id`)", anchTbl, col))
+							connArgs = append(connArgs, anchorID)
+						} else {
+							connPreds = append(connPreds, fmt.Sprintf("EXISTS (SELECT 1 FROM `%s` AS anch WHERE anch.id = ? AND anch.`%s` = `x`.`id`)", anchTbl, col))
+							connArgs = append(connArgs, anchorID)
+						}
 					} else {
 						return "", nil, fmt.Errorf("could not resolve SQL FK for has_one connection (listed=%s anchor=%s)", listedMT.Name, anchorM)
 					}
@@ -875,8 +885,13 @@ func RootResolverQueryBuilder(cfg *models.Config, param *models.CommonSystemPara
 				}
 			} else {
 				col := relationFKColumnNameParts(anchorM, knownAs)
-				connPreds = append(connPreds, fmt.Sprintf("`x`.`%s` = ?", col))
-				connArgs = append(connArgs, anchorID)
+				if intersect {
+					connPreds = append(connPreds, fmt.Sprintf("(`x`.`%s` IS NULL OR `x`.`%s` != ?)", col, col))
+					connArgs = append(connArgs, anchorID)
+				} else {
+					connPreds = append(connPreds, fmt.Sprintf("`x`.`%s` = ?", col))
+					connArgs = append(connArgs, anchorID)
+				}
 			}
 		}
 	}
@@ -885,7 +900,7 @@ func RootResolverQueryBuilder(cfg *models.Config, param *models.CommonSystemPara
 
 	tableName := utility.PhysicalSQLTableName(param.Model.Name)
 
-	if !returnCount {
+	if !returnCount && (param.Model == nil || !models.ModelIsProjectAuthUserModel(param.Model)) {
 		leftJoins = append(leftJoins, `left join meta as y on y.doc_id = x.id`)
 	}
 
@@ -928,7 +943,11 @@ func RootResolverQueryBuilder(cfg *models.Config, param *models.CommonSystemPara
 
 	// default sort
 	if !returnCount { // limit & Order if not counting
-		queries = append(queries, `ORDER BY y.created_at DESC, x.id DESC`)
+		orderBy := `ORDER BY y.created_at DESC, x.id DESC`
+		if param.Model != nil && models.ModelIsProjectAuthUserModel(param.Model) {
+			orderBy = `ORDER BY x.created_at DESC, x.id DESC`
+		}
+		queries = append(queries, orderBy)
 		queries = append(queries, fmt.Sprintf(`LIMIT %d OFFSET %d`, limit, offset))
 	}
 

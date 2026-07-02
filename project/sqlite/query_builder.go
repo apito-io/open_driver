@@ -15,6 +15,7 @@ import (
 	"github.com/graph-gophers/dataloader"
 	"github.com/tailor-platform/graphql"
 	qutility "gitlab.com/apito.io/open_driver/utility"
+	"gitlab.com/apito.io/open_driver/project/sqlquery"
 )
 
 // mergeGroupedSQLPredicates builds `(pred AND …)` groups from ConditionBuilder / hook output.
@@ -159,6 +160,10 @@ func filterSQLComparator(suffix string) (string, bool) {
 }
 
 func SelectBuilder(mv string, local string, modelType *models.ModelType, returnCount bool) []string {
+
+	if models.ModelIsProjectAuthUserModel(modelType) {
+		return sqlquery.ProjectAuthUserSelectColumns(local, modelType, returnCount)
+	}
 
 	var returnType []string
 	if returnCount {
@@ -1047,13 +1052,23 @@ func RootResolverQueryBuilder(cfg *models.Config, param *models.CommonSystemPara
 			if len(param.ProjectSchemaModels) > 0 {
 				anchorMT := findSchemaModel(param.ProjectSchemaModels, anchorM)
 				if col, ok := fkPhysicalColumnOnModelToTarget(listedMT, anchorM, knownAs); ok {
-					connPreds = append(connPreds, fmt.Sprintf("`x`.`%s` = ?", col))
-					connArgs = append(connArgs, anchorID)
+					if intersect {
+						connPreds = append(connPreds, fmt.Sprintf("(`x`.`%s` IS NULL OR `x`.`%s` != ?)", col, col))
+						connArgs = append(connArgs, anchorID)
+					} else {
+						connPreds = append(connPreds, fmt.Sprintf("`x`.`%s` = ?", col))
+						connArgs = append(connArgs, anchorID)
+					}
 				} else if anchorMT != nil {
 					if col, ok := fkPhysicalColumnOnModelToTarget(anchorMT, listedMT.Name, knownAs); ok {
 						anchTbl := utility.PhysicalSQLTableName(anchorM)
-						connPreds = append(connPreds, fmt.Sprintf("EXISTS (SELECT 1 FROM `%s` AS anch WHERE anch.id = ? AND anch.`%s` = `x`.`id`)", anchTbl, col))
-						connArgs = append(connArgs, anchorID)
+						if intersect {
+							connPreds = append(connPreds, fmt.Sprintf("NOT EXISTS (SELECT 1 FROM `%s` AS anch WHERE anch.id = ? AND anch.`%s` = `x`.`id`)", anchTbl, col))
+							connArgs = append(connArgs, anchorID)
+						} else {
+							connPreds = append(connPreds, fmt.Sprintf("EXISTS (SELECT 1 FROM `%s` AS anch WHERE anch.id = ? AND anch.`%s` = `x`.`id`)", anchTbl, col))
+							connArgs = append(connArgs, anchorID)
+						}
 					} else {
 						return "", nil, fmt.Errorf("could not resolve SQL FK for has_one connection (listed=%s anchor=%s)", listedMT.Name, anchorM)
 					}
@@ -1062,8 +1077,13 @@ func RootResolverQueryBuilder(cfg *models.Config, param *models.CommonSystemPara
 				}
 			} else {
 				col := relationFKColumnNameParts(anchorM, knownAs)
-				connPreds = append(connPreds, fmt.Sprintf("`x`.`%s` = ?", col))
-				connArgs = append(connArgs, anchorID)
+				if intersect {
+					connPreds = append(connPreds, fmt.Sprintf("(`x`.`%s` IS NULL OR `x`.`%s` != ?)", col, col))
+					connArgs = append(connArgs, anchorID)
+				} else {
+					connPreds = append(connPreds, fmt.Sprintf("`x`.`%s` = ?", col))
+					connArgs = append(connArgs, anchorID)
+				}
 			}
 		}
 	}
@@ -1072,7 +1092,7 @@ func RootResolverQueryBuilder(cfg *models.Config, param *models.CommonSystemPara
 
 	tableName := utility.PhysicalSQLTableName(param.Model.Name)
 
-	if !returnCount {
+	if !returnCount && (param.Model == nil || !models.ModelIsProjectAuthUserModel(param.Model)) {
 		leftJoins = append(leftJoins, `left join meta as y on y.doc_id = x.id`)
 	}
 
@@ -1122,7 +1142,7 @@ func RootResolverQueryBuilder(cfg *models.Config, param *models.CommonSystemPara
 
 	// default sort
 	if !returnCount { // limit & Order if not counting
-		queries = append(queries, `ORDER BY y.created_at DESC, x.id DESC`)
+		queries = append(queries, sqlquery.RootListOrderBySQL(param.Model))
 		queries = append(queries, fmt.Sprintf(`LIMIT %d OFFSET %d`, limit, offset))
 	}
 
@@ -1202,6 +1222,7 @@ func BuildCombinedRelationQuery(cfg *models.Config, relationType string, parentM
 
 	selectThing := SelectBuilder("z", local, arg.Model, arg.OnlyReturnCount)
 	selectList := strings.Join(selectThing, ", ")
+	metaJoin := sqlquery.RelationMetaJoinFragment(arg.Model)
 
 	relationTo := relationInput["to_model"].(string)
 	tableName := utility.PhysicalSQLTableName(relationTo)
@@ -1241,9 +1262,8 @@ func BuildCombinedRelationQuery(cfg *models.Config, relationType string, parentM
 			pivotTable = relationPivotTableNameParts(fromModelStr, relationTo, knownAs)
 			// Alias must match RelationshipDataLoader* (reads sys_key to bucket rows per parent id).
 			query = fmt.Sprintf(`SELECT %s AS sys_key, %s FROM `+"`%s`"+` AS y 
-				LEFT JOIN `+"`%s`"+` AS x ON x.id = y.%s_id 
-				LEFT JOIN meta AS z ON z.doc_id = x.id
-				WHERE %s`, keyField, selectList, pivotTable, tableName, relationToCol, whereCondition)
+				LEFT JOIN `+"`%s`"+` AS x ON x.id = y.%s_id%s
+				WHERE %s`, keyField, selectList, pivotTable, tableName, relationToCol, metaJoin, whereCondition)
 		} else {
 
 			if len(mergedFilter) > 0 {
@@ -1262,9 +1282,8 @@ func BuildCombinedRelationQuery(cfg *models.Config, relationType string, parentM
 			}
 			hasManyFK := relationFKColumnNameParts(fromModelStr, knownAs)
 			query = fmt.Sprintf(`SELECT %s AS sys_key, %s FROM `+"`%s`"+` AS y 
-				LEFT JOIN `+"`%s`"+` AS x ON x.%s = y.id 
-				LEFT JOIN meta AS z ON z.doc_id = x.id
-				WHERE %s`, keyField, selectList, pivotTable, tableName, hasManyFK, whereCondition)
+				LEFT JOIN `+"`%s`"+` AS x ON x.%s = y.id%s
+				WHERE %s`, keyField, selectList, pivotTable, tableName, hasManyFK, metaJoin, whereCondition)
 		}
 	case "has_one":
 		if len(mergedFilter) > 0 {
@@ -1289,23 +1308,20 @@ func BuildCombinedRelationQuery(cfg *models.Config, relationType string, parentM
 			if isOneToOne {
 				hasOneFK := relationFKColumnNameParts(fromModelStr, knownAs)
 				query = fmt.Sprintf(`SELECT %s AS sys_key, %s FROM `+"`%s`"+` AS y 
-					LEFT JOIN `+"`%s`"+` AS x ON x.%s = y.id 
-					LEFT JOIN meta AS z ON z.doc_id = x.id
-					WHERE %s`, keyField, selectList, pivotTable, tableName, hasOneFK, whereCondition)
+					LEFT JOIN `+"`%s`"+` AS x ON x.%s = y.id%s
+					WHERE %s`, keyField, selectList, pivotTable, tableName, hasOneFK, metaJoin, whereCondition)
 			} else {
 				hasOneFK := relationFKColumnNameParts(relationTo, knownAs)
 				query = fmt.Sprintf(`SELECT %s AS sys_key, %s FROM `+"`%s`"+` AS y 
-					LEFT JOIN `+"`%s`"+` AS x ON x.id = y.%s 
-					LEFT JOIN meta AS z ON z.doc_id = x.id
-					WHERE %s`, keyField, selectList, pivotTable, tableName, hasOneFK, whereCondition)
+					LEFT JOIN `+"`%s`"+` AS x ON x.id = y.%s%s
+					WHERE %s`, keyField, selectList, pivotTable, tableName, hasOneFK, metaJoin, whereCondition)
 			}
 		case "from":
 			pivotTable = fromCol
 			hasOneFK := relationFKColumnNameParts(relationTo, knownAs)
 			query = fmt.Sprintf(`SELECT %s AS sys_key, %s FROM `+"`%s`"+` AS y 
-				LEFT JOIN `+"`%s`"+` AS x ON x.id = y.%s 
-				LEFT JOIN meta AS z ON z.doc_id = x.id
-				WHERE %s`, keyField, selectList, pivotTable, tableName, hasOneFK, whereCondition)
+				LEFT JOIN `+"`%s`"+` AS x ON x.id = y.%s%s
+				WHERE %s`, keyField, selectList, pivotTable, tableName, hasOneFK, metaJoin, whereCondition)
 		}
 	default:
 		return "", nil, nil, fmt.Errorf("unsupported relation_type %v", relationInput["relation_type"])
