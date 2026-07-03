@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"gitlab.com/apito.io/open_driver/project/sqlcommon"
+	"gitlab.com/apito.io/open_driver/project/sqlquery"
 
 	_const "github.com/apito-io/engine/const"
 	"github.com/apito-io/engine/models"
@@ -684,14 +685,12 @@ func (d *Driver) AddDocumentToProject(ctx context.Context, param *models.CommonS
 		data := map[string]interface{}{
 			"id": doc.ID,
 		}
-		for k, v := range doc.Data {
-			if val, ok := v.(map[string]interface{}); ok {
-				if html, ok := val["html"]; ok {
-					data[k] = html
-				}
-			} else {
-				data[k] = v
-			}
+		mapped, err := sqlquery.MapDocumentDataForSQLInsert(doc.Data, param.Model.Fields)
+		if err != nil {
+			return err
+		}
+		for k, v := range mapped {
+			data[k] = v
 		}
 		if err := runDocumentPreInsertHook(d.Conf, ctx, param, data); err != nil {
 			return err
@@ -702,7 +701,7 @@ func (d *Driver) AddDocumentToProject(ctx context.Context, param *models.CommonS
 		mergeDocumentTaggedFieldsIntoData(doc, data)
 		StripArangoEnvelopeKeysForSQLInsert(data, param)
 		remapSyntheticSystemRelationRowKeys(data, param.Model)
-		_, err := tx.NewInsert().Table(tableName).Model(&data).Exec(ctx)
+		_, err = tx.NewInsert().Table(tableName).Model(&data).Exec(ctx)
 		if err != nil {
 			return err
 		}
@@ -744,7 +743,7 @@ func (d *Driver) UpdateDocumentOfProject(ctx context.Context, param *models.Comm
 			galleryField = append(galleryField, f.Identifier)
 		} else if f.FieldType == _const.MediaField && f.Validation != nil && !f.Validation.IsGallery {
 			pictureField = append(pictureField, f.Identifier)
-		} else if f.FieldType == _const.ListField && f.Validation != nil && (len(f.Validation.FixedListElements) == 0 || f.Validation.IsMultiChoice) {
+		} else if sqlquery.IsJSONStoredListField(f) {
 			listFields = append(listFields, f.Identifier)
 		} else if f.FieldType == _const.RepeatedField {
 			repeatedFields = append(repeatedFields, f.Identifier)

@@ -743,7 +743,7 @@ func (d *Driver) BuildFieldClassification(_fields []*models.FieldInfo) *FieldCla
 			classification.GalleryField = append(classification.GalleryField, f.Identifier)
 		} else if f.FieldType == _const.MediaField {
 			classification.PictureField = append(classification.PictureField, f.Identifier)
-		} else if f.FieldType == _const.ListField && f.Validation != nil && (len(f.Validation.FixedListElements) == 0 || f.Validation.IsMultiChoice) {
+		} else if sqlquery.IsJSONStoredListField(f) {
 			classification.ListFields = append(classification.ListFields, f.Identifier)
 		} else if f.FieldType == _const.RepeatedField {
 			if len(classification.RepeatedFields) == 0 {

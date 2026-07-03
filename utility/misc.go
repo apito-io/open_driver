@@ -12,11 +12,10 @@ func GetUserFieldType(fieldInfo *models.FieldInfo) reflect.Kind {
 	case _const.StringInput:
 		switch fieldInfo.FieldType {
 		case _const.ListField:
-			if fieldInfo.Validation != nil && (fieldInfo.Validation.IsMultiChoice || len(fieldInfo.Validation.FixedListElements) == 0) { // and multi-choice & dynamic list
+			if fieldInfo.Validation == nil || fieldInfo.Validation.IsMultiChoice || len(fieldInfo.Validation.FixedListElements) == 0 {
 				return reflect.Slice
-			} else {
-				return reflect.String
 			}
+			return reflect.String
 		case _const.MediaField:
 		case _const.MultilineField:
 		default:

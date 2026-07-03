@@ -22,7 +22,7 @@ func BuildFieldClassification(fields []*models.FieldInfo) *FieldClassification {
 				classification.PictureField = append(classification.PictureField, f.Identifier)
 			}
 		case _const.ListField:
-			if f.Validation != nil && (len(f.Validation.FixedListElements) == 0 || f.Validation.IsMultiChoice) {
+			if IsJSONStoredListField(f) {
 				classification.ListFields = append(classification.ListFields, f.Identifier)
 			}
 		case _const.RepeatedField:
