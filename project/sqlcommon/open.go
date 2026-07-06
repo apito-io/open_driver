@@ -14,6 +14,7 @@ import (
 	"time"
 
 	_const "github.com/apito-io/engine/const"
+	"github.com/apito-io/engine/interfaces"
 	"github.com/apito-io/engine/models"
 	"github.com/apito-io/engine/utility"
 	_ "github.com/go-sql-driver/mysql"
@@ -178,6 +179,11 @@ type BunDriver interface {
 type SQLDriverCarrier interface {
 	SQLDriverShell() *Driver
 	SQLEngineName() string
+}
+
+// ProjectDBPeelable is implemented by decorators that wrap a project SQL driver.
+type ProjectDBPeelable interface {
+	PeelProjectDB() interfaces.ProjectDBInterface
 }
 
 var _ BunDriver = (*Driver)(nil)
