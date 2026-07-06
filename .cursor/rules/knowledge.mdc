@@ -1,5 +1,7 @@
 ---
-alwaysApply: true
+description: Knowledge entry point for open_driver — read .knowledge/README.md before coding in apito/pkg/open_driver
+globs: apito/pkg/open_driver/**
+alwaysApply: false
 ---
 
 # Knowledge base — open_driver
