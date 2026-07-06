@@ -4,3 +4,6 @@ __debug*
 *.out
 .idea/
 .vscode/
+
+# env files tracked for single-dev monorepo setup (do not re-ignore .env / .env.local)
+.env.*.local
