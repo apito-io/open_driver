@@ -33,9 +33,10 @@ func DeleteUser(ctx context.Context, projectID, userID string) error {
 	return ae.ErrProjectUsersUnsupported
 }
 
-func SearchProjectUsers(ctx context.Context, projectID string, limit, offset int) ([]*models.User, int, error) {
+func SearchProjectUsers(ctx context.Context, projectID, q string, limit, offset int) ([]*models.User, int, error) {
 	_ = ctx
 	_ = projectID
+	_ = q
 	_ = limit
 	_ = offset
 	return nil, 0, ae.ErrProjectUsersUnsupported

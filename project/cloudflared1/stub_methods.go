@@ -131,7 +131,7 @@ func (d *Driver) ListProjectAuthUsersByPhone(ctx context.Context, tenantID, phon
 func (d *Driver) ListProjectAuthUsersByGoogleSub(ctx context.Context, tenantID, googleSub string) ([]*models.ProjectAuthUser, error) {
 	return nil, cfd1.ErrNotImplemented
 }
-func (d *Driver) SearchProjectAuthUsers(ctx context.Context, tenantID string, limit, offset int) ([]*models.ProjectAuthUser, int, error) {
+func (d *Driver) SearchProjectAuthUsers(ctx context.Context, tenantID, q string, limit, offset int) ([]*models.ProjectAuthUser, int, error) {
 	return nil, 0, cfd1.ErrNotImplemented
 }
 func (d *Driver) CountProjectAuthUsersByRole(ctx context.Context, tenantID string) (map[string]int, error) {

@@ -42,8 +42,8 @@ func (d *Driver) ListProjectAuthUsersByGoogleSub(ctx context.Context, tenantID, 
 	return d.authUsersStore().ListProjectAuthUsersByGoogleSub(ctx, tenantID, googleSub)
 }
 
-func (d *Driver) SearchProjectAuthUsers(ctx context.Context, tenantID string, limit, offset int) ([]*models.ProjectAuthUser, int, error) {
-	return d.authUsersStore().SearchProjectAuthUsers(ctx, tenantID, limit, offset)
+func (d *Driver) SearchProjectAuthUsers(ctx context.Context, tenantID, q string, limit, offset int) ([]*models.ProjectAuthUser, int, error) {
+	return d.authUsersStore().SearchProjectAuthUsers(ctx, tenantID, q, limit, offset)
 }
 
 func (d *Driver) CountProjectAuthUsersByRole(ctx context.Context, tenantID string) (map[string]int, error) {

@@ -14,6 +14,19 @@ func phoneOrLegacyUsernameMatch() string {
 	return "(LOWER(TRIM(COALESCE(phone, ''))) = ? OR (TRIM(COALESCE(phone, '')) = '' AND LOWER(TRIM(username)) = ?))"
 }
 
+func userSearchLikePattern(q string) string {
+	needle := strings.TrimSpace(q)
+	if needle == "" {
+		return ""
+	}
+	needle = strings.ReplaceAll(needle, `\`, `\\`)
+	needle = strings.ReplaceAll(needle, "%", `\%`)
+	needle = strings.ReplaceAll(needle, "_", `\_`)
+	return "%" + strings.ToLower(needle) + "%"
+}
+
+const userSearchLikeClause = "(lower(email) LIKE ? ESCAPE '\\' OR lower(username) LIKE ? ESCAPE '\\' OR lower(phone) LIKE ? ESCAPE '\\' OR lower(id) LIKE ? ESCAPE '\\')"
+
 func prepareUserRow(row *models.User) {
 	now := time.Now().UTC()
 	if row.CreatedAt.IsZero() {
@@ -133,7 +146,7 @@ func (d *Driver) ListUsersByGoogleSub(ctx context.Context, projectID, googleSub 
 	return rows, err
 }
 
-func (d *Driver) SearchProjectUsers(ctx context.Context, projectID string, limit, offset int) ([]*models.User, int, error) {
+func (d *Driver) SearchProjectUsers(ctx context.Context, projectID, q string, limit, offset int) ([]*models.User, int, error) {
 	if d == nil || d.ORM == nil {
 		return nil, 0, errors.New("sql: nil driver")
 	}
@@ -146,16 +159,23 @@ func (d *Driver) SearchProjectUsers(ctx context.Context, projectID string, limit
 	if offset < 0 {
 		offset = 0
 	}
-	count, err := d.ORM.NewSelect().Model((*models.User)(nil)).
-		Where("project_id = ?", projectID).
-		Count(ctx)
+	pat := userSearchLikePattern(q)
+	countQ := d.ORM.NewSelect().Model((*models.User)(nil)).
+		Where("project_id = ?", projectID)
+	if pat != "" {
+		countQ = countQ.Where(userSearchLikeClause, pat, pat, pat, pat)
+	}
+	count, err := countQ.Count(ctx)
 	if err != nil {
 		return nil, 0, err
 	}
 	var rows []*models.User
-	err = d.ORM.NewSelect().Model(&rows).
-		Where("project_id = ?", projectID).
-		Order("created_at ASC").
+	listQ := d.ORM.NewSelect().Model(&rows).
+		Where("project_id = ?", projectID)
+	if pat != "" {
+		listQ = listQ.Where(userSearchLikeClause, pat, pat, pat, pat)
+	}
+	err = listQ.Order("created_at ASC").
 		Limit(limit).
 		Offset(offset).
 		Scan(ctx)

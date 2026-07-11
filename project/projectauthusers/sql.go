@@ -52,6 +52,28 @@ func tenantFilter(q *bun.SelectQuery, tenantID string) *bun.SelectQuery {
 	return q
 }
 
+func authUserSearchLikePattern(q string) string {
+	needle := strings.TrimSpace(q)
+	if needle == "" {
+		return ""
+	}
+	needle = strings.ReplaceAll(needle, `\`, `\\`)
+	needle = strings.ReplaceAll(needle, "%", `\%`)
+	needle = strings.ReplaceAll(needle, "_", `\_`)
+	return "%" + strings.ToLower(needle) + "%"
+}
+
+func authUserSearchFilter(q *bun.SelectQuery, searchQ string) *bun.SelectQuery {
+	pat := authUserSearchLikePattern(searchQ)
+	if pat == "" {
+		return q
+	}
+	return q.Where(
+		"(lower(u.email) LIKE ? ESCAPE '\\' OR lower(u.username) LIKE ? ESCAPE '\\' OR lower(u.phone) LIKE ? ESCAPE '\\' OR lower(u.id) LIKE ? ESCAPE '\\')",
+		pat, pat, pat, pat,
+	)
+}
+
 func (s *SQLStore) EnsureUsersTable(ctx context.Context) error {
 	if s == nil || s.DB == nil {
 		return errors.New("projectauthusers: nil store")
@@ -384,7 +406,7 @@ func (s *SQLStore) CountProjectAuthUsersByRole(ctx context.Context, tenantID str
 	return out, nil
 }
 
-func (s *SQLStore) SearchProjectAuthUsers(ctx context.Context, tenantID string, limit, offset int) ([]*models.ProjectAuthUser, int, error) {
+func (s *SQLStore) SearchProjectAuthUsers(ctx context.Context, tenantID, q string, limit, offset int) ([]*models.ProjectAuthUser, int, error) {
 	if s == nil || s.DB == nil {
 		return nil, 0, errors.New("projectauthusers: nil store")
 	}
@@ -402,6 +424,7 @@ func (s *SQLStore) SearchProjectAuthUsers(ctx context.Context, tenantID string, 
 	}
 	countQ := s.DB.NewSelect().Model((*models.ProjectAuthUser)(nil))
 	countQ = tenantFilter(countQ, tenantID)
+	countQ = authUserSearchFilter(countQ, q)
 	count, err := countQ.Count(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -409,6 +432,7 @@ func (s *SQLStore) SearchProjectAuthUsers(ctx context.Context, tenantID string, 
 	var rows []*models.ProjectAuthUser
 	listQ := s.DB.NewSelect().Model(&rows).Order("created_at ASC").Limit(limit).Offset(offset)
 	listQ = tenantFilter(listQ, tenantID)
+	listQ = authUserSearchFilter(listQ, q)
 	if err := listQ.Scan(ctx); err != nil {
 		return nil, 0, err
 	}

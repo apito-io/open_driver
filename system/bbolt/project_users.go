@@ -23,8 +23,8 @@ func (d *ProBBoltSystemDriver) DeleteUser(ctx context.Context, projectID, userID
 	return sysusers.DeleteUser(ctx, projectID, userID)
 }
 
-func (d *ProBBoltSystemDriver) SearchProjectUsers(ctx context.Context, projectID string, limit, offset int) ([]*models.User, int, error) {
-	return sysusers.SearchProjectUsers(ctx, projectID, limit, offset)
+func (d *ProBBoltSystemDriver) SearchProjectUsers(ctx context.Context, projectID, q string, limit, offset int) ([]*models.User, int, error) {
+	return sysusers.SearchProjectUsers(ctx, projectID, q, limit, offset)
 }
 
 func (d *ProBBoltSystemDriver) GetUserByUsername(ctx context.Context, projectID, username string) (*models.User, error) {

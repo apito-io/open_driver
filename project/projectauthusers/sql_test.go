@@ -47,7 +47,7 @@ func TestSQLStoreAuthUserCRUD(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, byEmail, 1)
 
-	rows, count, err := store.SearchProjectAuthUsers(ctx, "", 10, 0)
+	rows, count, err := store.SearchProjectAuthUsers(ctx, "", "", 10, 0)
 	require.NoError(t, err)
 	require.Equal(t, 1, count)
 	require.Len(t, rows, 1)
@@ -177,4 +177,57 @@ func TestSQLStoreUniqueEmailPhoneGoogleSub(t *testing.T) {
 	_, err = store.CreateProjectAuthUser(ctx, dupGoogle)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "google account already linked")
+}
+
+func TestSQLStoreSearchProjectAuthUsersQFilter(t *testing.T) {
+	sqldb, err := sql.Open("sqlite", "file:authuserssearchq?mode=memory&cache=shared")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sqldb.Close() })
+
+	db := bun.NewDB(sqldb, sqlitedialect.New())
+	store := &projectauthusers.SQLStore{DB: db}
+	ctx := context.Background()
+
+	require.NoError(t, store.EnsureUsersTable(ctx))
+
+	for _, spec := range []struct {
+		id, email, username string
+	}{
+		{"u1", "alice@example.com", "alice"},
+		{"u2", "bob@example.com", "bob"},
+		{"u3", "carol@other.org", "carol"},
+	} {
+		_, err := store.CreateProjectAuthUser(ctx, &models.ProjectAuthUser{
+			ID:       spec.id,
+			Username: spec.username,
+			Email:    spec.email,
+			Secret:   "hash",
+			Role:     "none",
+			Provider: models.UserProviderLocal,
+			Status:   models.UserStatusActive,
+		})
+		require.NoError(t, err)
+	}
+
+	rows, count, err := store.SearchProjectAuthUsers(ctx, "", "alice", 10, 0)
+	require.NoError(t, err)
+	require.Equal(t, 1, count)
+	require.Len(t, rows, 1)
+	require.Equal(t, "u1", rows[0].ID)
+
+	rows, count, err = store.SearchProjectAuthUsers(ctx, "", "example.com", 10, 0)
+	require.NoError(t, err)
+	require.Equal(t, 2, count)
+	require.Len(t, rows, 2)
+
+	rows, count, err = store.SearchProjectAuthUsers(ctx, "", "u3", 10, 0)
+	require.NoError(t, err)
+	require.Equal(t, 1, count)
+	require.Len(t, rows, 1)
+	require.Equal(t, "u3", rows[0].ID)
+
+	rows, count, err = store.SearchProjectAuthUsers(ctx, "", "", 10, 0)
+	require.NoError(t, err)
+	require.Equal(t, 3, count)
+	require.Len(t, rows, 3)
 }

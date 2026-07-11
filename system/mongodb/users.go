@@ -3,6 +3,7 @@ package mongodb
 import (
 	"context"
 	"errors"
+	"regexp"
 	"strings"
 	"time"
 
@@ -126,7 +127,7 @@ func (m *SystemMongoDriver) findUsers(ctx context.Context, filter bson.M) ([]*mo
 	return out, cur.Err()
 }
 
-func (m *SystemMongoDriver) SearchProjectUsers(ctx context.Context, projectID string, limit, offset int) ([]*models.User, int, error) {
+func (m *SystemMongoDriver) SearchProjectUsers(ctx context.Context, projectID, q string, limit, offset int) ([]*models.User, int, error) {
 	if limit <= 0 {
 		limit = 50
 	}
@@ -137,6 +138,15 @@ func (m *SystemMongoDriver) SearchProjectUsers(ctx context.Context, projectID st
 		offset = 0
 	}
 	filter := bson.M{"project_id": projectID}
+	if needle := strings.TrimSpace(q); needle != "" {
+		rx := bson.Regex{Pattern: regexp.QuoteMeta(needle), Options: "i"}
+		filter["$or"] = bson.A{
+			bson.M{"email": rx},
+			bson.M{"username": rx},
+			bson.M{"phone": rx},
+			bson.M{"_id": rx},
+		}
+	}
 	count, err := m.Database.Collection(projectUsersCollection).CountDocuments(ctx, filter)
 	if err != nil {
 		return nil, 0, err

@@ -257,7 +257,7 @@ func (d *Driver) UpdateUser(ctx context.Context, user *models.User) error { retu
 func (d *Driver) DeleteUser(ctx context.Context, projectID, userID string) error {
 	return cfd1.ErrNotImplemented
 }
-func (d *Driver) SearchProjectUsers(ctx context.Context, projectID string, limit, offset int) ([]*models.User, int, error) {
+func (d *Driver) SearchProjectUsers(ctx context.Context, projectID, q string, limit, offset int) ([]*models.User, int, error) {
 	return nil, 0, cfd1.ErrNotImplemented
 }
 func (d *Driver) CountProjectUsersByRole(ctx context.Context, projectID string) (map[string]int, error) {
