@@ -20,6 +20,7 @@ func (d *Driver) GetProjects(ctx context.Context, keys []string) ([]*models.Proj
 		Relation("Driver").
 		Relation("Settings").
 		Relation("Schema.Models").
+		Relation("Schema.Functions").
 		Where("id IN (?)", bun.In(keys)).
 		Scan(ctx)
 
@@ -227,6 +228,7 @@ func (d *Driver) CheckProjectWithRoles(ctx context.Context, userId, projectId st
 		Relation("Driver").
 		Relation("Settings").
 		Relation("Schema.Models").
+		Relation("Schema.Functions").
 		Where("project.id = ?", projectId).
 		Scan(ctx)
 	if err != nil {

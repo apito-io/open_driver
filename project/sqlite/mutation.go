@@ -790,7 +790,12 @@ func (d *Driver) UpdateDocumentOfProject(ctx context.Context, param *models.Comm
 		case reflect.Struct:
 			data[k] = v
 		default:
-			panic("unhandled default case")
+			// Avoid crashing the GraphQL request on unexpected SQL/driver types.
+			b, err := json.Marshal(v)
+			if err != nil {
+				return fmt.Errorf("unhandled field type %v for %s: %w", kind, k, err)
+			}
+			data[k] = string(b)
 		}
 
 	}

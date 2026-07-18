@@ -82,7 +82,12 @@ func openBun(cfg *models.Config, cred *models.DriverCredentials) (*bun.DB, error
 		sqldb.SetConnMaxLifetime(10 * time.Minute)
 		sqldb.SetConnMaxIdleTime(5 * time.Minute)
 		bunDB = bun.NewDB(sqldb, sqlitedialect.New())
-		if err := ApplySQLiteConnectionPragmas(context.Background(), bunDB, cred.Engine, dsn); err != nil {
+		pragmaOpts := SQLitePragmaOpts{}
+		if cfg != nil {
+			pragmaOpts.CacheSizeKB = cfg.SQLiteCacheSizeKB
+			pragmaOpts.MmapBytes = cfg.SQLiteMmapBytes
+		}
+		if err := ApplySQLiteConnectionPragmas(context.Background(), bunDB, cred.Engine, dsn, pragmaOpts); err != nil {
 			_ = bunDB.Close()
 			return nil, err
 		}

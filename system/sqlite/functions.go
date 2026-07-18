@@ -23,6 +23,7 @@ func (d *Driver) GetProject(ctx context.Context, id string) (*models.Project, er
 		Relation("Driver").
 		Relation("Settings").
 		Relation("Schema.Models").
+		Relation("Schema.Functions").
 		Relation("Tokens").
 		Where("project.id = ?", id).
 		Scan(ctx)
@@ -80,7 +81,7 @@ func (d *Driver) CheckProjectName(ctx context.Context, name string) error {
 func (d *Driver) SearchProjects(ctx context.Context, param *models.CommonSystemParams) (*models.SearchResponse[models.Project], error) {
 	var projects []*models.Project
 
-	query := d.ORM.NewSelect().Model(&projects).Relation("Driver").Relation("Settings").Relation("Schema.Models")
+	query := d.ORM.NewSelect().Model(&projects).Relation("Driver").Relation("Settings").Relation("Schema.Models").Relation("Schema.Functions")
 
 	// Add filters based on parameters
 	if param.UserID != "" {
@@ -180,6 +181,7 @@ func (d *Driver) ListAllProjects(ctx context.Context, userId string) ([]*models.
 		Relation("Driver").
 		Relation("Settings").
 		Relation("Schema.Models").
+		Relation("Schema.Functions").
 		Order("created_at DESC").
 		Scan(ctx)
 
@@ -565,7 +567,12 @@ func (d *Driver) syncProjectSchemaModelsTx(ctx context.Context, tx bun.Tx, proje
 	}
 
 	if schema.Models != nil {
-		return d.persistProjectModelTypesTx(ctx, tx, project.ID, schema.Models)
+		if err := d.persistProjectModelTypesTx(ctx, tx, project.ID, schema.Models); err != nil {
+			return err
+		}
+	}
+	if schema.Functions != nil {
+		return sqlcommon.PersistProjectFunctionsTx(ctx, tx, project.ID, schema.Functions)
 	}
 	return nil
 }

@@ -1,19 +1,19 @@
 # open_driver — Handoff
 
 ## Branch
-- _TODO_
+- Tracks open-core via go.mod replace in monorepo
 
 ## Done
-- _TODO_
+- **Function persistence (2026-07-16):** `sqlcommon/function_persist.go`, `schema_models.go` lifecycle tables, driver init/migration hooks, upsert fields (`language`, `binary_url`, `source`, `trigger_type`, `capabilities`). Test: `system/sqlite/function_persist_test.go` green. Uncommitted.
 
 ## Broken / watch
-- _TODO_
+- No driver-level transaction batch API exposed to functions gateway yet
 
 ## Next
-- _TODO_
+- Batch executor + idempotency persistence on SQLite project DB
 
 ## Do not touch
-- _TODO_
+- Hand-edit generated schema migrations without matching open-core model changes
 
 ## Last Updated
-2026-07-06
+2026-07-16

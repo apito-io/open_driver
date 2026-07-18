@@ -796,10 +796,9 @@ func (d *Driver) GetSingleRawDocumentFromProject(ctx context.Context, param *mod
 	err = d.ORM.NewRaw(query, args...).Scan(ctx, &result)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return &types.DefaultDocumentStructure{}, nil
-		} else {
-			return nil, err
+			return nil, fmt.Errorf("document %s not found", param.DocumentID)
 		}
+		return nil, err
 	}
 
 	classification := d.BuildFieldClassification(param.Model.Fields)

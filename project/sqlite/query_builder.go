@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -509,7 +510,26 @@ func FilterBuilder(variable string, where map[string]interface{}, modelType *mod
 
 		if !skipKindCheck {
 			if k := getFieldType(actualValue); kind != k {
-				return nil, fmt.Errorf("invalid value for %s in query: type mismatched", field)
+				// GraphQL/JSON numbers decode as float64; accept whole floats for int fields.
+				// Also accept numeric strings for int fields (common client coercion).
+				compatible := false
+				switch {
+				case kind == reflect.Int && k == reflect.Float64:
+					if f, ok := actualValue.(float64); ok && f == float64(int64(f)) {
+						compatible = true
+					}
+				case kind == reflect.Int && k == reflect.String:
+					if s, ok := actualValue.(string); ok {
+						if _, err := strconv.ParseInt(s, 10, 64); err == nil {
+							compatible = true
+						}
+					}
+				case kind == reflect.Float64 && (k == reflect.Int || k == reflect.Int64 || k == reflect.Int32):
+					compatible = true
+				}
+				if !compatible {
+					return nil, fmt.Errorf("invalid value for %s in query: type mismatched", field)
+				}
 			}
 		}
 
