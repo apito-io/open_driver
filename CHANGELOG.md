@@ -1,5 +1,11 @@
 # open_driver changelog
 
+## [1.0.7] — 2026-07-21
+
+### System schema
+
+- **`system_users.access_tokens`** — `EnsureSystemUserAccessTokensColumn` ALTER for existing DBs (Bun `CreateTable().IfNotExists()` does not add columns). Required by open-core **v1.8.0** apt_ token storage; without this, bootstrap panics with `no such column: system_user.access_tokens`.
+
 ## [1.0.6] — 2026-07-18
 
 ### Apito Functions
