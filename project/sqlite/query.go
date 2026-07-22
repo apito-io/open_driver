@@ -686,8 +686,10 @@ func (d *Driver) GetSingleProjectDocumentBytes(ctx context.Context, param *model
 func (d *Driver) GetSingleProjectDocument(ctx context.Context, param *models.CommonSystemParams) (*types.DefaultDocumentStructure, error) {
 
 	var local string
-	if val, ok := param.ResolveParams.Args["local"].(string); ok {
-		local = val
+	if param.ResolveParams != nil && param.ResolveParams.Args != nil {
+		if val, ok := param.ResolveParams.Args["local"].(string); ok {
+			local = val
+		}
 	}
 
 	tableName := utility.PhysicalSQLTableName(param.Model.Name)
@@ -775,8 +777,10 @@ func (d *Driver) GetSingleRawDocumentFromProject(ctx context.Context, param *mod
 	}
 
 	var local string
-	if val, ok := param.ResolveParams.Args["local"].(string); ok {
-		local = val
+	if param.ResolveParams != nil && param.ResolveParams.Args != nil {
+		if val, ok := param.ResolveParams.Args["local"].(string); ok {
+			local = val
+		}
 	}
 
 	returnType := `
@@ -982,8 +986,10 @@ func (f *Driver) CountMultiDocumentOfProject(ctx context.Context, param *models.
 func (d *Driver) QueryMultiDocumentOfProjectBytes(ctx context.Context, param *models.CommonSystemParams) ([]byte, error) {
 
 	var local string
-	if val, ok := param.ResolveParams.Args["local"].(string); ok {
-		local = val
+	if param.ResolveParams != nil && param.ResolveParams.Args != nil {
+		if val, ok := param.ResolveParams.Args["local"].(string); ok {
+			local = val
+		}
 	}
 
 	if err := d.maybeEnsureRelationDDL(ctx, param); err != nil {
@@ -1047,8 +1053,10 @@ func (d *Driver) QueryMultiDocumentOfProject(ctx context.Context, param *models.
 
 	classification := d.BuildFieldClassification(param.Model.Fields)
 	var local string
-	if val, ok := param.ResolveParams.Args["local"].(string); ok {
-		local = val
+	if param.ResolveParams != nil && param.ResolveParams.Args != nil {
+		if val, ok := param.ResolveParams.Args["local"].(string); ok {
+			local = val
+		}
 	}
 
 	var docs []*types.DefaultDocumentStructure
