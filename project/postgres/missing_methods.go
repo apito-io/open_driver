@@ -313,17 +313,23 @@ func (s *Driver) RenameModel(ctx context.Context, project *models.Project, model
 	oldTableName := utility.PhysicalSQLTableName(modelName)
 	newTableName := utility.PhysicalSQLTableName(newName)
 
-	query := fmt.Sprintf("RENAME TABLE `%s` TO `%s`", oldTableName, newTableName)
+	query := fmt.Sprintf(
+		"ALTER TABLE %s RENAME TO %s",
+		QuotePGIdent(oldTableName),
+		QuotePGIdent(newTableName),
+	)
 	_, err := s.ORM.NewRaw(query).Exec(ctx)
 	if err != nil {
 		return err
 	}
 
 	// Update the project schema
-	for _, model := range project.Schema.Models {
-		if model.Name == modelName {
-			model.Name = newName
-			break
+	if project != nil && project.Schema != nil {
+		for _, model := range project.Schema.Models {
+			if model != nil && model.Name == modelName {
+				model.Name = newName
+				break
+			}
 		}
 	}
 

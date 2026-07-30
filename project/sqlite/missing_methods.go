@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	_const "github.com/apito-io/engine/const"
@@ -110,25 +111,133 @@ func (s *Driver) GetSingleProjectDocumentRevisions(ctx context.Context, param *m
 	return revisions, nil
 }
 
-// AggregateDocOfProject aggregates the documents in the project.
-// Uses the same SQL shape as CountDocOfProject (RootResolverQueryBuilder with returnCount=true)
-// so filters, tenant QueryFilterHook, and role-based predicates match list/count behavior.
+// AggregateDocOfProject aggregates numeric fields for ListCount.aggregate (SUM), matching
+// Arango COLLECT AGGREGATE. Reuses list/count WHERE + relation EXISTS filters.
 func (s *Driver) AggregateDocOfProject(ctx context.Context, param *models.CommonSystemParams) (interface{}, error) {
-	query, args, err := RootResolverQueryBuilder(s.Conf, param, true)
+	if param == nil || param.Model == nil {
+		return nil, errors.New("model is required for aggregate query")
+	}
+	if err := s.maybeEnsureRelationDDL(ctx, param); err != nil {
+		return nil, err
+	}
+
+	fieldNames := aggregateFieldNamesFromSelection(param)
+	if len(fieldNames) == 0 {
+		// No aggregate { … } selection — keep historical count-only shape.
+		query, args, err := RootResolverQueryBuilder(s.Conf, param, true)
+		if err != nil {
+			return nil, err
+		}
+		var n int64
+		if len(args) > 0 {
+			if err := s.ORM.NewRaw(query, args...).Scan(ctx, &n); err != nil {
+				return nil, err
+			}
+		} else if err := s.ORM.NewRaw(query).Scan(ctx, &n); err != nil {
+			return nil, err
+		}
+		return map[string]interface{}{"count": n}, nil
+	}
+
+	selectExprs, err := AggregateSelectExpressions(param.Model, fieldNames)
 	if err != nil {
 		return nil, err
 	}
-	var n int64
+	query, args, err := RootResolverAggregateQueryBuilder(s.Conf, param, selectExprs)
+	if err != nil {
+		return nil, err
+	}
+
+	// Scan one aggregate row into a map keyed by GraphQL field identifier.
+	row := make(map[string]interface{}, len(fieldNames))
+	var scanErr error
 	if len(args) > 0 {
-		if err := s.ORM.NewRaw(query, args...).Scan(ctx, &n); err != nil {
-			return nil, err
-		}
+		scanErr = s.ORM.NewRaw(query, args...).Scan(ctx, &row)
 	} else {
-		if err := s.ORM.NewRaw(query).Scan(ctx, &n); err != nil {
-			return nil, err
+		scanErr = s.ORM.NewRaw(query).Scan(ctx, &row)
+	}
+	if scanErr != nil {
+		// bun map scan may not bind aliased columns on all dialects — fall back to ordered NullFloat64.
+		return s.scanAggregateRowOrdered(ctx, query, args, fieldNames)
+	}
+	if len(row) == 0 {
+		return s.scanAggregateRowOrdered(ctx, query, args, fieldNames)
+	}
+	out := make(map[string]interface{}, len(fieldNames))
+	for _, name := range fieldNames {
+		if v, ok := row[name]; ok {
+			out[name] = coerceAggregateNumber(v)
+			continue
+		}
+		out[name] = float64(0)
+	}
+	return out, nil
+}
+
+func (s *Driver) scanAggregateRowOrdered(ctx context.Context, query string, args []interface{}, fieldNames []string) (map[string]interface{}, error) {
+	dest := make([]interface{}, len(fieldNames))
+	ptrs := make([]interface{}, len(fieldNames))
+	for i := range fieldNames {
+		var v sql.NullFloat64
+		dest[i] = &v
+		ptrs[i] = &v
+	}
+	var err error
+	if len(args) > 0 {
+		err = s.ORM.NewRaw(query, args...).Scan(ctx, ptrs...)
+	} else {
+		err = s.ORM.NewRaw(query).Scan(ctx, ptrs...)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("aggregate scan failed: %w", err)
+	}
+	out := make(map[string]interface{}, len(fieldNames))
+	for i, name := range fieldNames {
+		nf := dest[i].(*sql.NullFloat64)
+		if nf != nil && nf.Valid {
+			out[name] = nf.Float64
+		} else {
+			out[name] = float64(0)
 		}
 	}
-	return map[string]interface{}{"count": n}, nil
+	return out, nil
+}
+
+func coerceAggregateNumber(v interface{}) interface{} {
+	switch n := v.(type) {
+	case nil:
+		return float64(0)
+	case float64:
+		return n
+	case float32:
+		return float64(n)
+	case int64:
+		return float64(n)
+	case int32:
+		return float64(n)
+	case int:
+		return float64(n)
+	case json.Number:
+		f, err := n.Float64()
+		if err != nil {
+			return float64(0)
+		}
+		return f
+	case []byte:
+		f, err := strconv.ParseFloat(string(n), 64)
+		if err != nil {
+			return float64(0)
+		}
+		return f
+	case string:
+		f, err := strconv.ParseFloat(n, 64)
+		if err != nil {
+			return float64(0)
+		}
+		return f
+	default:
+		return v
+	}
 }
 
 // AggregateDocOfProjectBytes aggregates the documents in the project and returns it as bytes.
@@ -308,26 +417,191 @@ func (s *Driver) DeleteDocumentsFromProject(ctx context.Context, param *models.C
 	return err
 }
 
-// RenameModel renames a model in the project.
+// RenameModel renames a model table and related SQLite relation artifacts (pivots / FK columns).
+// SQLite/libsql/Turso require ALTER TABLE … RENAME TO — MySQL's "RENAME TABLE" is a syntax error.
 func (s *Driver) RenameModel(ctx context.Context, project *models.Project, modelName, newName string) error {
 	oldTableName := utility.PhysicalSQLTableName(modelName)
 	newTableName := utility.PhysicalSQLTableName(newName)
+	if oldTableName == "" || newTableName == "" {
+		return fmt.Errorf("RenameModel: invalid names %q → %q", modelName, newName)
+	}
+	if strings.EqualFold(oldTableName, newTableName) {
+		return nil
+	}
 
-	query := fmt.Sprintf("RENAME TABLE `%s` TO `%s`", oldTableName, newTableName)
-	_, err := s.ORM.NewRaw(query).Exec(ctx)
+	exists, err := s.sqliteTableExists(ctx, oldTableName)
 	if err != nil {
 		return err
 	}
+	if exists {
+		query := fmt.Sprintf("ALTER TABLE `%s` RENAME TO `%s`", oldTableName, newTableName)
+		if _, err := s.ORM.NewRaw(query).Exec(ctx); err != nil {
+			return fmt.Errorf("rename table %s → %s: %w", oldTableName, newTableName, err)
+		}
+	}
 
-	// Update the project schema
-	for _, model := range project.Schema.Models {
-		if model.Name == modelName {
-			model.Name = newName
-			break
+	if err := s.renameModelRelationArtifacts(ctx, project, modelName, newName); err != nil {
+		return err
+	}
+
+	if project != nil && project.Schema != nil {
+		for _, model := range project.Schema.Models {
+			if model != nil && model.Name == modelName {
+				model.Name = newName
+				break
+			}
 		}
 	}
 
 	return nil
+}
+
+func (s *Driver) sqliteTableExists(ctx context.Context, name string) (bool, error) {
+	var n int
+	err := s.ORM.NewRaw(`SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?`, name).Scan(ctx, &n)
+	if err != nil {
+		return false, err
+	}
+	return n > 0, nil
+}
+
+func (s *Driver) sqliteColumnExists(ctx context.Context, table, column string) (bool, error) {
+	var names []string
+	// pragma_table_info is a table-valued function; selecting only `name` avoids
+	// bun Scan mapping every PRAGMA table_info column onto a struct.
+	err := s.ORM.NewRaw(`SELECT name FROM pragma_table_info(?)`, table).Scan(ctx, &names)
+	if err != nil {
+		return false, err
+	}
+	for _, n := range names {
+		if strings.EqualFold(n, column) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// renameModelRelationArtifacts renames M:N pivot tables and has_one FK columns that
+// embed the old physical model slug so connect/list keep working after rename.
+func (s *Driver) renameModelRelationArtifacts(ctx context.Context, project *models.Project, oldName, newName string) error {
+	if project == nil || project.Schema == nil {
+		return nil
+	}
+	oldPhys := utility.PhysicalSQLTableName(oldName)
+	newPhys := utility.PhysicalSQLTableName(newName)
+
+	type pivotPair struct{ old, neu string }
+	pivots := map[string]pivotPair{}
+	type colRename struct{ table, oldCol, newCol string }
+	var cols []colRename
+
+	for _, model := range project.Schema.Models {
+		if model == nil {
+			continue
+		}
+		for _, conn := range model.Connections {
+			if conn == nil || conn.Model == "" {
+				continue
+			}
+			involvesOld := strings.EqualFold(model.Name, oldName) || strings.EqualFold(conn.Model, oldName)
+			if !involvesOld {
+				continue
+			}
+
+			oldPivot := relationPivotTableNameParts(model.Name, conn.Model, conn.KnownAs)
+			newPivot := relationPivotTableNameParts(
+				mapModelName(model.Name, oldName, newName),
+				mapModelName(conn.Model, oldName, newName),
+				conn.KnownAs,
+			)
+			if oldPivot != "" && newPivot != "" && oldPivot != newPivot {
+				pivots[oldPivot] = pivotPair{old: oldPivot, neu: newPivot}
+			}
+
+			// has_one FK columns named {peer}_id / {peer}_as_{known}_id on this model table.
+			if conn.Relation == "has_one" && strings.EqualFold(conn.Model, oldName) {
+				oldCol := relationFKColumnNameParts(oldName, conn.KnownAs)
+				newCol := relationFKColumnNameParts(newName, conn.KnownAs)
+				if oldCol != "" && newCol != "" && oldCol != newCol {
+					tbl := utility.PhysicalSQLTableName(mapModelName(model.Name, oldName, newName))
+					cols = append(cols, colRename{table: tbl, oldCol: oldCol, newCol: newCol})
+				}
+			}
+		}
+	}
+
+	for _, p := range pivots {
+		ok, err := s.sqliteTableExists(ctx, p.old)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			continue
+		}
+		destExists, err := s.sqliteTableExists(ctx, p.neu)
+		if err != nil {
+			return err
+		}
+		if destExists {
+			continue
+		}
+		q := fmt.Sprintf("ALTER TABLE `%s` RENAME TO `%s`", p.old, p.neu)
+		if _, err := s.ORM.NewRaw(q).Exec(ctx); err != nil {
+			return fmt.Errorf("rename pivot %s → %s: %w", p.old, p.neu, err)
+		}
+		// Pivot column slugs follow physical model names.
+		oldCol := oldPhys + "_id"
+		newCol := newPhys + "_id"
+		if oldCol != newCol {
+			colOK, err := s.sqliteColumnExists(ctx, p.neu, oldCol)
+			if err != nil {
+				return err
+			}
+			if colOK {
+				cq := fmt.Sprintf("ALTER TABLE `%s` RENAME COLUMN `%s` TO `%s`", p.neu, oldCol, newCol)
+				if _, err := s.ORM.NewRaw(cq).Exec(ctx); err != nil {
+					return fmt.Errorf("rename pivot column %s.%s → %s: %w", p.neu, oldCol, newCol, err)
+				}
+			}
+		}
+	}
+
+	for _, c := range cols {
+		ok, err := s.sqliteTableExists(ctx, c.table)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			continue
+		}
+		colOK, err := s.sqliteColumnExists(ctx, c.table, c.oldCol)
+		if err != nil {
+			return err
+		}
+		if !colOK {
+			continue
+		}
+		destOK, err := s.sqliteColumnExists(ctx, c.table, c.newCol)
+		if err != nil {
+			return err
+		}
+		if destOK {
+			continue
+		}
+		q := fmt.Sprintf("ALTER TABLE `%s` RENAME COLUMN `%s` TO `%s`", c.table, c.oldCol, c.newCol)
+		if _, err := s.ORM.NewRaw(q).Exec(ctx); err != nil {
+			return fmt.Errorf("rename fk column %s.%s → %s: %w", c.table, c.oldCol, c.newCol, err)
+		}
+	}
+
+	return nil
+}
+
+func mapModelName(name, oldName, newName string) string {
+	if strings.EqualFold(name, oldName) {
+		return newName
+	}
+	return name
 }
 
 // ConvertModel converts a model in the project.
