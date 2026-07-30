@@ -1,5 +1,14 @@
 # open_driver changelog
 
+## [1.0.10] — 2026-07-30
+
+### Project SQL
+
+- **SQLite aggregate helpers** — Ship `aggregateFieldNamesFromSelection`,
+  `AggregateSelectExpressions`, `RootResolverAggregateQueryBuilder` that
+  `AggregateDocOfProject` already called in v1.0.9. Fixes Studio module build
+  (`undefined: aggregateFieldNamesFromSelection`).
+
 ## [1.0.9] — 2026-07-30
 
 ### Project SQL

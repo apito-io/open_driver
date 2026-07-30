@@ -6,10 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	_const "github.com/apito-io/engine/const"
+	"github.com/apito-io/engine/database/helper"
 	"github.com/apito-io/engine/models"
 	"github.com/apito-io/engine/utility"
 	"github.com/apito-io/types"
@@ -190,6 +193,62 @@ func SelectBuilder(mv string, local string, modelType *models.ModelType, returnC
 	returnType = append(returnType, metaQuery)
 
 	return returnType
+}
+
+// aggregateFieldNamesFromSelection mirrors Arango ReturnAggregateBuilder: fields under
+// selection set path aggregate { fieldA fieldB }.
+func aggregateFieldNamesFromSelection(param *models.CommonSystemParams) []string {
+	if param == nil || param.QuerySelectionSets == nil {
+		return nil
+	}
+	fields := helper.ReturnAggregateBuilder("x", *param.QuerySelectionSets)
+	if len(fields) == 0 {
+		return nil
+	}
+	names := make([]string, 0, len(fields))
+	for name := range fields {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}
+
+// AggregateSelectExpressions builds COALESCE(SUM(x.col), 0) AS field for numeric model fields
+// requested in the GraphQL aggregate selection (same field set Arango SUMs).
+func AggregateSelectExpressions(modelType *models.ModelType, fieldNames []string) ([]string, error) {
+	if modelType == nil {
+		return nil, errors.New("model is required for aggregate query")
+	}
+	byID := make(map[string]*models.FieldInfo, len(modelType.Fields))
+	for _, f := range modelType.Fields {
+		if f == nil || f.Identifier == "" {
+			continue
+		}
+		byID[f.Identifier] = f
+	}
+	var exprs []string
+	for _, name := range fieldNames {
+		name = strings.TrimSpace(name)
+		if name == "" || name == "__typename" {
+			continue
+		}
+		f, ok := byID[name]
+		if !ok {
+			return nil, fmt.Errorf("aggregate field %q is not on model %q", name, modelType.Name)
+		}
+		switch f.InputType {
+		case _const.IntInput, _const.DoubleInput:
+		default:
+			return nil, fmt.Errorf("aggregate field %q on model %q is not numeric", name, modelType.Name)
+		}
+		phys := PhysicalSQLColumnForSystemRelationField(f.Identifier, modelType)
+		// COALESCE keeps GraphQL from returning null when no rows / all-null column.
+		exprs = append(exprs, fmt.Sprintf("COALESCE(SUM(`x`.`%s`), 0) AS `%s`", phys, f.Identifier))
+	}
+	if len(exprs) == 0 {
+		return nil, errors.New("no aggregate fields selected")
+	}
+	return exprs, nil
 }
 
 func graphqlArgInt(m map[string]interface{}, key string, def int) int {
@@ -953,6 +1012,19 @@ func RootConnectionResolverQueryBuilder(cfg *models.Config, param *models.Common
 }
 
 func RootResolverQueryBuilder(cfg *models.Config, param *models.CommonSystemParams, returnCount bool) (string, []interface{}, error) {
+	return rootResolverQueryBuilder(cfg, param, returnCount, nil)
+}
+
+// RootResolverAggregateQueryBuilder builds SELECT SUM(...) … WHERE with the same connection,
+// relation, where, role, and tenant filters as list/count (Arango COLLECT AGGREGATE parity).
+func RootResolverAggregateQueryBuilder(cfg *models.Config, param *models.CommonSystemParams, selectExprs []string) (string, []interface{}, error) {
+	if len(selectExprs) == 0 {
+		return "", nil, errors.New("aggregate select expressions required")
+	}
+	return rootResolverQueryBuilder(cfg, param, true, selectExprs)
+}
+
+func rootResolverQueryBuilder(cfg *models.Config, param *models.CommonSystemParams, returnCount bool, selectOverride []string) (string, []interface{}, error) {
 
 	var modelName string
 	if param.Model == nil {
@@ -968,7 +1040,12 @@ func RootResolverQueryBuilder(cfg *models.Config, param *models.CommonSystemPara
 		local = val
 	}
 
-	returnType := SelectBuilder("y", local, param.Model, returnCount)
+	var returnType []string
+	if len(selectOverride) > 0 {
+		returnType = selectOverride
+	} else {
+		returnType = SelectBuilder("y", local, param.Model, returnCount)
+	}
 
 	var connection map[string]interface{}
 	if val, ok := param.ResolveParams.Args["connection"].(map[string]interface{}); ok {
