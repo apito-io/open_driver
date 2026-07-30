@@ -1,5 +1,14 @@
 # open_driver changelog
 
+## [1.0.9] — 2026-07-30
+
+### Project SQL
+
+- **`RenameModel`** — SQLite and Postgres use dialect-correct
+  `ALTER TABLE … RENAME TO` (not MySQL `RENAME TABLE`). SQLite also renames
+  relation pivot/FK artifacts. Required by engine schema `rename_model`
+  publish on SQL/tenant DBs.
+
 ## [1.0.7] — 2026-07-21
 
 ### System schema
