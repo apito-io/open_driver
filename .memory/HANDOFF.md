@@ -1,19 +1,29 @@
 # open_driver — Handoff
 
 ## Branch
-- Tracks open-core via go.mod replace in monorepo
+
+- `main` ahead 1: `8036e9c` RenameModel ALTER TABLE fix.
 
 ## Done
-- **Function persistence (2026-07-16):** `sqlcommon/function_persist.go`, `schema_models.go` lifecycle tables, driver init/migration hooks, upsert fields (`language`, `binary_url`, `source`, `trigger_type`, `capabilities`). Test: `system/sqlite/function_persist_test.go` green. Uncommitted.
 
-## Broken / watch
-- No driver-level transaction batch API exposed to functions gateway yet
+- **2026-07-30:** Dialect-correct `RenameModel` for SQLite + Postgres;
+  `project/sqlite/rename_model_test.go`. Pairs with engine
+  `changelogs/2026-07-30.md`.
+
+## Dirty / watch
+
+- Uncommitted: `mutation.go`, `query_builder.go`, `aggregate_test.go`,
+  `system/sqlite/:memory:.sqlite` — exclude from rename push.
 
 ## Next
-- Batch executor + idempotency persistence on SQLite project DB
+
+1. User confirm → push `8036e9c`
+2. Studio/engine consume this pin for SQL tenant rename publish
 
 ## Do not touch
+
 - Hand-edit generated schema migrations without matching open-core model changes
 
 ## Last Updated
-2026-07-16
+
+2026-07-30

@@ -4,6 +4,22 @@ Not git history — the *reasoning* behind changes. Newest on top.
 Format per entry: date, **Changed**, **Why**, **Affected**.
 
 ---
+## 2026-07-30 — Released v1.0.9
+- **Changed:** Tagged+pushed **v1.0.9** (RenameModel ALTER TABLE). Engine
+  require bumped to v1.0.9.
+- **Why:** Studio/non-replace builds must not stay on v1.0.8.
+- **Affected:** GitLab `open_driver` tag v1.0.9; engine go.mod pin.
+
+## 2026-07-30 — RenameModel ALTER TABLE (SQLite/Postgres)
+- **Changed:** `RenameModel` uses dialect `ALTER TABLE … RENAME TO`; SQLite
+  renames relation pivot/FK artifacts; unit test
+  `TestRenameModel_SQLiteAlterTableSyntax`. Commit `8036e9c` (local).
+- **Why:** MySQL `RENAME TABLE` syntax broke tenant SQLite publish
+  (`near "RENAME"`) for schema `rename_model`.
+- **Affected:** `project/sqlite/missing_methods.go`,
+  `project/postgres/missing_methods.go`, `project/sqlite/rename_model_test.go`.
+  Released as **v1.0.9**; engine require bumped.
+
 ## 2026-07-20 — Ensure system_user.access_tokens column
 - **Changed:** `sqlcommon.EnsureSystemUserAccessTokensColumn`; wired into
   sqlite/postgres/mysql/mariadb `RunMigration`.
