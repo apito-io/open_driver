@@ -251,6 +251,101 @@ func AggregateSelectExpressions(modelType *models.ModelType, fieldNames []string
 	return exprs, nil
 }
 
+// GroupByKey is one `groupBy: [{ key, value }]` entry, kept in the order the client sent
+// them so `group_by_identifier_1` always maps to the first key.
+type GroupByKey struct {
+	Key   string
+	Value string
+}
+
+// GroupByKeysFromArgs reads the ordered groupBy argument off the GraphQL resolve params.
+func GroupByKeysFromArgs(param *models.CommonSystemParams) []GroupByKey {
+	if param == nil || param.ResolveParams == nil || param.ResolveParams.Args == nil {
+		return nil
+	}
+	raw, ok := param.ResolveParams.Args["groupBy"].([]interface{})
+	if !ok {
+		return nil
+	}
+	var keys []GroupByKey
+	for _, entry := range raw {
+		m, ok := entry.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		value, _ := m["value"].(string)
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		key, _ := m["key"].(string)
+		keys = append(keys, GroupByKey{Key: strings.TrimSpace(key), Value: value})
+	}
+	return keys
+}
+
+// GroupBySelectExpressions maps each groupBy value onto its physical column and aliases it
+// as group_by_identifier_N, matching the Arango builder's RETURN shape.
+func GroupBySelectExpressions(modelType *models.ModelType, keys []GroupByKey) (selectExprs []string, groupCols []string, err error) {
+	if modelType == nil {
+		return nil, nil, errors.New("model is required for group by query")
+	}
+	if len(keys) > groupByIdentifierLimit {
+		return nil, nil, fmt.Errorf("group by supports at most %d keys", groupByIdentifierLimit)
+	}
+	for i, k := range keys {
+		phys := PhysicalSQLColumnForSystemRelationField(k.Value, modelType)
+		if !groupByColumnExists(modelType, k.Value, phys) {
+			return nil, nil, fmt.Errorf("group by field %q is not on model %q", k.Value, modelType.Name)
+		}
+		col := fmt.Sprintf("`x`.`%s`", phys)
+		groupCols = append(groupCols, col)
+		selectExprs = append(selectExprs, fmt.Sprintf("%s AS `%s`", col, GroupByIdentifierAlias(i+1)))
+	}
+	return selectExprs, groupCols, nil
+}
+
+// groupByKeysUseRelationColumn reports whether any key targets a relation-derived
+// system_<model>_id column rather than a plain model field.
+func groupByKeysUseRelationColumn(keys []GroupByKey) bool {
+	for _, k := range keys {
+		id := utility.CanonicalSystemRelationFieldIdentifier(strings.TrimSpace(k.Value))
+		if strings.HasPrefix(id, "system_") && strings.HasSuffix(id, "_id") {
+			return true
+		}
+	}
+	return false
+}
+
+// GroupByIdentifierAlias is the GraphQL field name for the Nth group key.
+func GroupByIdentifierAlias(n int) string {
+	return fmt.Sprintf("group_by_identifier_%d", n)
+}
+
+// IsGroupByIdentifier reports whether a selected field is a group key placeholder rather
+// than a numeric model field to SUM.
+func IsGroupByIdentifier(name string) bool {
+	return strings.HasPrefix(strings.TrimSpace(name), "group_by_identifier_")
+}
+
+const groupByIdentifierLimit = 2
+
+// groupByColumnExists accepts either a declared model field or a relation-derived
+// system_<model>_id column, which has no FieldInfo entry but is a real FK column.
+func groupByColumnExists(modelType *models.ModelType, identifier string, physical string) bool {
+	if physical != identifier {
+		// PhysicalSQLColumnForSystemRelationField only rewrites identifiers it resolved
+		// against the model's connections, so a rewrite means the FK column exists.
+		return true
+	}
+	for _, f := range modelType.Fields {
+		if f != nil && f.Identifier == identifier {
+			return true
+		}
+	}
+	return false
+}
+
 func graphqlArgInt(m map[string]interface{}, key string, def int) int {
 	v, ok := m[key]
 	if !ok || v == nil {
@@ -408,6 +503,41 @@ func coerceBetweenBound(kind reflect.Kind, v interface{}) (interface{}, error) {
 	}
 }
 
+// validateListFilterElements type-checks each member of an `in` / `not_in` list
+// against the field kind, applying the same numeric/string leniency the
+// single-value check uses (JSON numbers arrive as float64).
+func validateListFilterElements(field string, kind reflect.Kind, value interface{}) error {
+	arr, ok := value.([]interface{})
+	if !ok {
+		return fmt.Errorf("invalid value for %s in query: expected a list", field)
+	}
+	for _, item := range arr {
+		if item == nil {
+			continue
+		}
+		k := getFieldType(item)
+		if k == kind {
+			continue
+		}
+		switch {
+		case kind == reflect.Int && k == reflect.Float64:
+			if f, ok := item.(float64); ok && f == float64(int64(f)) {
+				continue
+			}
+		case kind == reflect.Int && k == reflect.String:
+			if s, ok := item.(string); ok {
+				if _, err := strconv.ParseInt(s, 10, 64); err == nil {
+					continue
+				}
+			}
+		case kind == reflect.Float64 && (k == reflect.Int || k == reflect.Int64 || k == reflect.Int32):
+			continue
+		}
+		return fmt.Errorf("invalid value for %s in query: type mismatched", field)
+	}
+	return nil
+}
+
 func ConditionBuilder(variable string, args map[string]interface{}, modelType *models.ModelType, sqlArgs *[]interface{}) (map[string][]string, error) {
 
 	userDefinedFieldNames := make(map[string]reflect.Kind)
@@ -519,6 +649,14 @@ func FilterBuilder(variable string, where map[string]interface{}, modelType *mod
 					conditions = append(conditions, fmt.Sprintf(`%s LIKE '%%%s%%'`, fieldName, value.(string)))
 				}
 			case "eq", "ne", "lt", "lte", "gt", "gtr", "in", "not_in":
+				if suffix == "in" || suffix == "not_in" {
+					// Value is a list; the trailing check compares a single value
+					// against the field kind, so validate the elements here instead.
+					if err := validateListFilterElements(field, kind, value); err != nil {
+						return nil, err
+					}
+					skipKindCheck = true
+				}
 				if sqlArgs != nil {
 					op, ok := filterSQLComparator(suffix)
 					if !ok {
@@ -540,6 +678,9 @@ func FilterBuilder(variable string, where map[string]interface{}, modelType *mod
 						for _, v := range arr {
 							*sqlArgs = append(*sqlArgs, v)
 						}
+					case "ne":
+						conditions = append(conditions, fmt.Sprintf(`(%s IS NULL OR %s %s ?)`, fieldName, fieldName, op))
+						*sqlArgs = append(*sqlArgs, value)
 					default:
 						conditions = append(conditions, fmt.Sprintf(`%s %s ?`, fieldName, op))
 						*sqlArgs = append(*sqlArgs, value)
@@ -547,9 +688,17 @@ func FilterBuilder(variable string, where map[string]interface{}, modelType *mod
 				} else {
 					switch value := value.(type) {
 					case int, float64, bool:
-						conditions = append(conditions, fmt.Sprintf(`%s %s %v`, fieldName, FilterSuffix[suffix], value))
+						if suffix == "ne" {
+							conditions = append(conditions, fmt.Sprintf(`(%s IS NULL OR %s %s %v)`, fieldName, fieldName, FilterSuffix[suffix], value))
+						} else {
+							conditions = append(conditions, fmt.Sprintf(`%s %s %v`, fieldName, FilterSuffix[suffix], value))
+						}
 					case string:
-						conditions = append(conditions, fmt.Sprintf(`%s %s '%v'`, fieldName, FilterSuffix[suffix], value))
+						if suffix == "ne" {
+							conditions = append(conditions, fmt.Sprintf(`(%s IS NULL OR %s %s '%v')`, fieldName, fieldName, FilterSuffix[suffix], value))
+						} else {
+							conditions = append(conditions, fmt.Sprintf(`%s %s '%v'`, fieldName, FilterSuffix[suffix], value))
+						}
 					case []interface{}:
 						var vals []string
 						for _, v := range value {
@@ -1012,7 +1161,7 @@ func RootConnectionResolverQueryBuilder(cfg *models.Config, param *models.Common
 }
 
 func RootResolverQueryBuilder(cfg *models.Config, param *models.CommonSystemParams, returnCount bool) (string, []interface{}, error) {
-	return rootResolverQueryBuilder(cfg, param, returnCount, nil)
+	return rootResolverQueryBuilder(cfg, param, returnCount, nil, nil)
 }
 
 // RootResolverAggregateQueryBuilder builds SELECT SUM(...) … WHERE with the same connection,
@@ -1021,10 +1170,22 @@ func RootResolverAggregateQueryBuilder(cfg *models.Config, param *models.CommonS
 	if len(selectExprs) == 0 {
 		return "", nil, errors.New("aggregate select expressions required")
 	}
-	return rootResolverQueryBuilder(cfg, param, true, selectExprs)
+	return rootResolverQueryBuilder(cfg, param, true, selectExprs, nil)
 }
 
-func rootResolverQueryBuilder(cfg *models.Config, param *models.CommonSystemParams, returnCount bool, selectOverride []string) (string, []interface{}, error) {
+// RootResolverGroupByQueryBuilder adds GROUP BY to the aggregate query so one row is
+// returned per distinct key combination (Arango COLLECT … AGGREGATE parity).
+func RootResolverGroupByQueryBuilder(cfg *models.Config, param *models.CommonSystemParams, selectExprs []string, groupByCols []string) (string, []interface{}, error) {
+	if len(selectExprs) == 0 {
+		return "", nil, errors.New("aggregate select expressions required")
+	}
+	if len(groupByCols) == 0 {
+		return "", nil, errors.New("group by columns required")
+	}
+	return rootResolverQueryBuilder(cfg, param, true, selectExprs, groupByCols)
+}
+
+func rootResolverQueryBuilder(cfg *models.Config, param *models.CommonSystemParams, returnCount bool, selectOverride []string, groupByCols []string) (string, []interface{}, error) {
 
 	var modelName string
 	if param.Model == nil {
@@ -1235,6 +1396,10 @@ func rootResolverQueryBuilder(cfg *models.Config, param *models.CommonSystemPara
 
 	if len(mergedFilter) > 0 {
 		queries = append(queries, fmt.Sprintf(`WHERE %s`, strings.Join(mergedFilter, " AND ")))
+	}
+
+	if len(groupByCols) > 0 {
+		queries = append(queries, fmt.Sprintf(`GROUP BY %s`, strings.Join(groupByCols, ", ")))
 	}
 
 	// default sort

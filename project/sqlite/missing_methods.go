@@ -139,6 +139,10 @@ func (s *Driver) AggregateDocOfProject(ctx context.Context, param *models.Common
 		return map[string]interface{}{"count": n}, nil
 	}
 
+	if groupByKeys := GroupByKeysFromArgs(param); len(groupByKeys) > 0 {
+		return s.aggregateGroupedDocOfProject(ctx, param, fieldNames, groupByKeys)
+	}
+
 	selectExprs, err := AggregateSelectExpressions(param.Model, fieldNames)
 	if err != nil {
 		return nil, err
@@ -172,6 +176,92 @@ func (s *Driver) AggregateDocOfProject(ctx context.Context, param *models.Common
 		out[name] = float64(0)
 	}
 	return out, nil
+}
+
+// aggregateGroupedDocOfProject serves `groupBy: [{ key, value }]` by SUMming the selected
+// numeric fields per distinct key combination. The group keys come back as
+// group_by_identifier_1/2, in the order the client listed them.
+func (s *Driver) aggregateGroupedDocOfProject(ctx context.Context, param *models.CommonSystemParams, fieldNames []string, groupByKeys []GroupByKey) (interface{}, error) {
+	var sumFields []string
+	for _, name := range fieldNames {
+		if IsGroupByIdentifier(name) {
+			continue
+		}
+		sumFields = append(sumFields, name)
+	}
+	if len(sumFields) == 0 {
+		return nil, errors.New("no aggregate fields selected")
+	}
+
+	// Relation FK columns are materialised lazily (first connect mutation), so a group key
+	// pointing at a freshly added relation would hit "no such column" on a read-only query.
+	if groupByKeysUseRelationColumn(groupByKeys) && len(param.ProjectSchemaModels) > 0 {
+		if err := s.EnsureRelationArtifactsFromSchema(ctx, param.ProjectSchemaModels); err != nil {
+			return nil, err
+		}
+	}
+
+	sumExprs, err := AggregateSelectExpressions(param.Model, sumFields)
+	if err != nil {
+		return nil, err
+	}
+	keyExprs, groupCols, err := GroupBySelectExpressions(param.Model, groupByKeys)
+	if err != nil {
+		return nil, err
+	}
+
+	query, args, err := RootResolverGroupByQueryBuilder(s.Conf, param, append(keyExprs, sumExprs...), groupCols)
+	if err != nil {
+		return nil, err
+	}
+
+	var rows []map[string]interface{}
+	if len(args) > 0 {
+		err = s.ORM.NewRaw(query, args...).Scan(ctx, &rows)
+	} else {
+		err = s.ORM.NewRaw(query).Scan(ctx, &rows)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("group by aggregate scan failed: %w", err)
+	}
+
+	out := make([]map[string]interface{}, 0, len(rows))
+	for _, row := range rows {
+		item := make(map[string]interface{}, len(sumFields)+len(groupByKeys))
+		for i := range groupByKeys {
+			alias := GroupByIdentifierAlias(i + 1)
+			item[alias] = coerceGroupKey(row[alias])
+		}
+		for _, name := range sumFields {
+			if v, ok := row[name]; ok {
+				item[name] = coerceAggregateNumber(v)
+				continue
+			}
+			item[name] = float64(0)
+		}
+		out = append(out, item)
+	}
+	return out, nil
+}
+
+// coerceGroupKey normalises the FK column value to the nullable String the schema declares.
+func coerceGroupKey(v interface{}) interface{} {
+	switch key := v.(type) {
+	case nil:
+		return nil
+	case string:
+		if key == "" {
+			return nil
+		}
+		return key
+	case []byte:
+		if len(key) == 0 {
+			return nil
+		}
+		return string(key)
+	default:
+		return fmt.Sprintf("%v", key)
+	}
 }
 
 func (s *Driver) scanAggregateRowOrdered(ctx context.Context, query string, args []interface{}, fieldNames []string) (map[string]interface{}, error) {

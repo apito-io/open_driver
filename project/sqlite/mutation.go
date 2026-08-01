@@ -333,7 +333,22 @@ func (d *Driver) AddRelationFields(ctx context.Context, from *models.ConnectionT
 						"ALTER TABLE `%s` ADD COLUMN %s VARCHAR(36) REFERENCES `%s` (id) ON DELETE CASCADE",
 						ft, col, tt)
 				}
-				return execAddColumn(query)
+				if err := execAddColumn(query); err != nil {
+					return err
+				}
+				idxName := fmt.Sprintf("idx_%s_%s", fromTableName, col)
+				eng2 := strings.ToLower(strings.TrimSpace(d.DriverCredential.Engine))
+				if eng2 == _const.PostgreSQLDriver {
+					return exec(fmt.Sprintf(
+						"CREATE INDEX IF NOT EXISTS %s ON %s (%s)",
+						QuotePGIdent(idxName), QuotePGIdent(fromTableName), QuotePGIdent(col)))
+				}
+				return exec(fmt.Sprintf(
+					"CREATE INDEX IF NOT EXISTS `%s` ON `%s` (`%s`)",
+					strings.ReplaceAll(idxName, "`", "``"),
+					strings.ReplaceAll(fromTableName, "`", "``"),
+					strings.ReplaceAll(col, "`", "``"),
+				))
 			}
 		case "has_many":
 			switch to.Relation {
@@ -363,7 +378,18 @@ func (d *Driver) AddRelationFields(ctx context.Context, from *models.ConnectionT
 			case "has_one":
 				//same for one to one & one to many
 				query := fmt.Sprintf("ALTER TABLE `%s` ADD %s VARCHAR(36) REFERENCES `%s` (id) ON DELETE CASCADE;", toTableName, toFKColumn, fromTableName)
-				return execAddColumn(query)
+				if err := execAddColumn(query); err != nil {
+					return err
+				}
+				// Speeds up list/count/aggregate relation EXISTS (and JOIN) filters on the FK.
+				idx := fmt.Sprintf(
+					"CREATE INDEX IF NOT EXISTS `idx_%s_%s` ON `%s` (`%s`)",
+					strings.ReplaceAll(toTableName, "`", "``"),
+					strings.ReplaceAll(toFKColumn, "`", "``"),
+					strings.ReplaceAll(toTableName, "`", "``"),
+					strings.ReplaceAll(toFKColumn, "`", "``"),
+				)
+				return exec(idx)
 			}
 		}
 		return nil
