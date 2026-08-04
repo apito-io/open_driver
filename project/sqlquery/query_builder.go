@@ -837,9 +837,9 @@ func RootResolverQueryBuilder(cfg *models.Config, param *models.CommonSystemPara
 		queries = append(queries, fmt.Sprintf(`WHERE %s`, strings.Join(mergedFilter, " AND ")))
 	}
 
-	// default sort
+	// default sort (or client sort arg)
 	if !returnCount { // limit & Order if not counting
-		queries = append(queries, RootListOrderBySQL(param.Model))
+		queries = append(queries, RootListOrderByFromArgs(param))
 		queries = append(queries, fmt.Sprintf(`LIMIT %d OFFSET %d`, limit, offset))
 	}
 

@@ -1,18 +1,7 @@
 # open_driver — Handoff
 
-## Branch
-
-- `main` — tag **v1.0.11**
-
-## Done
-
-- **2026-08-01:** SQLite groupBy + ne-null + FK indexes. Tagged+pushed.
-
-## Do not touch
-
-- Commit `system/sqlite/:memory:.sqlite` junk
-- Hand-edit generated schema migrations without matching open-core model changes
+- `main` — tag **v1.0.12**
+- Pair with open-core **v1.8.8** + engine pin.
 
 ## Last Updated
-
-2026-08-01
+2026-08-05

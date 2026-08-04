@@ -1,5 +1,17 @@
 # open_driver — AI Changelog
 
+## 2026-08-05 — v1.0.12 list ORDER BY from sort arg
+
+- **Changed:** `sqlquery.RootListOrderByFromArgs` applies GraphQL `sort` for
+  FieldIsSortable columns; wired into sqlite/sqlquery/postgres/mysql/mariadb
+  list builders. Falls back to created_at default.
+- **Why:** Sort was schema-only; SQLite always ordered by created_at.
+- **Affected:** `project/sqlquery/root_list_order_by.go`, query builders.
+  Requires open-core **v1.8.8** FieldIsSortable.
+
+---
+# open_driver — AI Changelog
+
 Not git history — the *reasoning* behind changes. Newest on top.
 Format per entry: date, **Changed**, **Why**, **Affected**.
 

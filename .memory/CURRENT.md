@@ -1,14 +1,6 @@
 # open_driver — Current
 
-## Working on
-
-- **Released v1.0.11 (2026-08-01):** groupBy aggregates, `ne`+NULL filters,
-  FK indexes on relation add. Engine must pin **v1.0.11**.
-
-## Next
-
-- Studio rebuild after engine **v2.4.23** (or tip) that requires open_driver v1.0.11.
+- **Released v1.0.12 (2026-08-05):** RootListOrderByFromArgs.
 
 ## Last Updated
-
-2026-08-01
+2026-08-05

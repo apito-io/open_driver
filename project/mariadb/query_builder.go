@@ -9,12 +9,13 @@ import (
 	"strings"
 	"time"
 
-	qutility "gitlab.com/apito.io/open_driver/utility"
 	"github.com/apito-io/engine/models"
 	"github.com/apito-io/engine/utility"
 	"github.com/apito-io/types"
 	"github.com/graph-gophers/dataloader"
 	"github.com/tailor-platform/graphql"
+	"gitlab.com/apito.io/open_driver/project/sqlquery"
+	qutility "gitlab.com/apito.io/open_driver/utility"
 )
 
 // mergeGroupedSQLPredicates builds `(pred AND …)` groups from ConditionBuilder / hook output.
@@ -941,13 +942,9 @@ func RootResolverQueryBuilder(cfg *models.Config, param *models.CommonSystemPara
 		queries = append(queries, fmt.Sprintf(`WHERE %s`, strings.Join(mergedFilter, " AND ")))
 	}
 
-	// default sort
+	// default sort (or client sort arg)
 	if !returnCount { // limit & Order if not counting
-		orderBy := `ORDER BY y.created_at DESC, x.id DESC`
-		if param.Model != nil && models.ModelIsProjectAuthUserModel(param.Model) {
-			orderBy = `ORDER BY x.created_at DESC, x.id DESC`
-		}
-		queries = append(queries, orderBy)
+		queries = append(queries, sqlquery.RootListOrderByFromArgs(param))
 		queries = append(queries, fmt.Sprintf(`LIMIT %d OFFSET %d`, limit, offset))
 	}
 

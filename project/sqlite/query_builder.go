@@ -1402,9 +1402,9 @@ func rootResolverQueryBuilder(cfg *models.Config, param *models.CommonSystemPara
 		queries = append(queries, fmt.Sprintf(`GROUP BY %s`, strings.Join(groupByCols, ", ")))
 	}
 
-	// default sort
+	// default sort (or client sort arg)
 	if !returnCount { // limit & Order if not counting
-		queries = append(queries, sqlquery.RootListOrderBySQL(param.Model))
+		queries = append(queries, sqlquery.RootListOrderByFromArgs(param))
 		queries = append(queries, fmt.Sprintf(`LIMIT %d OFFSET %d`, limit, offset))
 	}
 
