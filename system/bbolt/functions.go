@@ -188,6 +188,9 @@ func (d *ProBBoltSystemDriver) CheckProjectName(ctx context.Context, name string
 }
 
 func (d *ProBBoltSystemDriver) SearchProjects(ctx context.Context, param *models.CommonSystemParams) (*models.SearchResponse[models.Project], error) {
+	if param == nil {
+		param = &models.CommonSystemParams{}
+	}
 	collection := d.DB.Collection("projects")
 	var projects []models.Project
 

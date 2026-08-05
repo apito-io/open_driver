@@ -1,5 +1,12 @@
 # open_driver changelog
 
+## [1.0.13] — 2026-08-05
+
+### Project auth users
+
+- **`oauth_sub`** column + indexes on SQL `users` table (ALTER for existing DBs).
+- **`ListProjectAuthUsersByOAuthSub`** for facebook/github/x/linkedin subject lookup.
+
 ## [1.0.10] — 2026-07-30
 
 ### Project SQL

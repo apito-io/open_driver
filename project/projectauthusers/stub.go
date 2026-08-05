@@ -51,6 +51,14 @@ func ListProjectAuthUsersByGoogleSub(ctx context.Context, tenantID, googleSub st
 	return nil, ae.ErrProjectAuthUsersUnsupported
 }
 
+func ListProjectAuthUsersByOAuthSub(ctx context.Context, tenantID, provider, oauthSub string) ([]*models.ProjectAuthUser, error) {
+	_ = ctx
+	_ = tenantID
+	_ = provider
+	_ = oauthSub
+	return nil, ae.ErrProjectAuthUsersUnsupported
+}
+
 func SearchProjectAuthUsers(ctx context.Context, tenantID, q string, limit, offset int) ([]*models.ProjectAuthUser, int, error) {
 	_ = ctx
 	_ = tenantID

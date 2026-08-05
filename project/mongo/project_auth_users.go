@@ -34,6 +34,10 @@ func (m *MongoDriver) ListProjectAuthUsersByPhone(ctx context.Context, tenantID,
 func (m *MongoDriver) ListProjectAuthUsersByGoogleSub(ctx context.Context, tenantID, googleSub string) ([]*models.ProjectAuthUser, error) {
 	return projectauthusers.ListProjectAuthUsersByGoogleSub(ctx, tenantID, googleSub)
 }
+func (m *MongoDriver) ListProjectAuthUsersByOAuthSub(ctx context.Context, tenantID, provider, oauthSub string) ([]*models.ProjectAuthUser, error) {
+	return projectauthusers.ListProjectAuthUsersByOAuthSub(ctx, tenantID, provider, oauthSub)
+}
+
 
 func (m *MongoDriver) SearchProjectAuthUsers(ctx context.Context, tenantID, q string, limit, offset int) ([]*models.ProjectAuthUser, int, error) {
 	return projectauthusers.SearchProjectAuthUsers(ctx, tenantID, q, limit, offset)

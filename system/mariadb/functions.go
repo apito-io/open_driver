@@ -79,6 +79,9 @@ func (d *Driver) CheckProjectName(ctx context.Context, name string) error {
 
 // SearchProjects searches for projects based on common system parameters using SQL
 func (d *Driver) SearchProjects(ctx context.Context, param *models.CommonSystemParams) (*models.SearchResponse[models.Project], error) {
+	if param == nil {
+		param = &models.CommonSystemParams{}
+	}
 	var projects []*models.Project
 
 	query := d.ORM.NewSelect().Model(&projects).Relation("Driver").Relation("Settings").Relation("Schema.Models").Relation("Schema.Functions")

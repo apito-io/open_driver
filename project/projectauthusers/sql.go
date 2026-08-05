@@ -103,6 +103,7 @@ CREATE TABLE IF NOT EXISTS %s (
 	role VARCHAR(64) NOT NULL,
 	provider VARCHAR(32) NOT NULL,
 	google_sub VARCHAR(255),
+	oauth_sub VARCHAR(255),
 	status VARCHAR(32) NOT NULL,
 	created_at TIMESTAMPTZ,
 	updated_at TIMESTAMPTZ
@@ -115,15 +116,18 @@ CREATE TABLE IF NOT EXISTS %s (
 			fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_users_tenant ON %s (tenant_id)`, table),
 			fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_users_email ON %s (LOWER(TRIM(email)))`, table),
 			fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_users_google_sub ON %s (google_sub)`, table),
+			fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_users_oauth_sub ON %s (provider, oauth_sub)`, table),
 			fmt.Sprintf(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique ON %s (LOWER(TRIM(email))) WHERE TRIM(COALESCE(email, '')) != ''`, table),
 			fmt.Sprintf(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone_unique ON %s (phone) WHERE TRIM(COALESCE(phone, '')) != ''`, table),
 			fmt.Sprintf(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_sub_unique ON %s (google_sub) WHERE TRIM(COALESCE(google_sub, '')) != ''`, table),
+			fmt.Sprintf(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_oauth_sub_unique ON %s (provider, oauth_sub) WHERE TRIM(COALESCE(oauth_sub, '')) != ''`, table),
 		}
 		for _, q := range indexes {
 			if _, err := db.ExecContext(ctx, q); err != nil {
 				return err
 			}
 		}
+		_, _ = db.ExecContext(ctx, fmt.Sprintf(`ALTER TABLE %s ADD COLUMN IF NOT EXISTS oauth_sub VARCHAR(255)`, table))
 		return nil
 	case dialect.MySQL.String():
 		_, err := db.ExecContext(ctx, fmt.Sprintf(`
@@ -137,6 +141,7 @@ CREATE TABLE IF NOT EXISTS %s (
 	role VARCHAR(64) NOT NULL,
 	provider VARCHAR(32) NOT NULL,
 	google_sub VARCHAR(255),
+	oauth_sub VARCHAR(255),
 	status VARCHAR(32) NOT NULL,
 	created_at DATETIME,
 	updated_at DATETIME,
@@ -144,11 +149,17 @@ CREATE TABLE IF NOT EXISTS %s (
 	UNIQUE KEY idx_users_email_unique (email),
 	UNIQUE KEY idx_users_phone_unique (phone),
 	UNIQUE KEY idx_users_google_sub_unique (google_sub),
+	UNIQUE KEY idx_users_oauth_sub_unique (provider, oauth_sub),
 	KEY idx_users_tenant (tenant_id),
 	KEY idx_users_email (email),
-	KEY idx_users_google_sub (google_sub)
+	KEY idx_users_google_sub (google_sub),
+	KEY idx_users_oauth_sub (provider, oauth_sub)
 );`, table))
-		return err
+		if err != nil {
+			return err
+		}
+		_, _ = db.ExecContext(ctx, fmt.Sprintf(`ALTER TABLE %s ADD COLUMN oauth_sub VARCHAR(255)`, table))
+		return nil
 	default:
 		// SQLite and libsql-compatible engines
 		_, err := db.ExecContext(ctx, fmt.Sprintf(`
@@ -162,6 +173,7 @@ CREATE TABLE IF NOT EXISTS %s (
 	role VARCHAR(64) NOT NULL,
 	provider VARCHAR(32) NOT NULL,
 	google_sub VARCHAR(255),
+	oauth_sub VARCHAR(255),
 	status VARCHAR(32) NOT NULL,
 	created_at TEXT,
 	updated_at TEXT
@@ -174,9 +186,11 @@ CREATE TABLE IF NOT EXISTS %s (
 			fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_users_tenant ON %s (tenant_id)`, table),
 			fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_users_email ON %s (email)`, table),
 			fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_users_google_sub ON %s (google_sub)`, table),
+			fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_users_oauth_sub ON %s (provider, oauth_sub)`, table),
 			fmt.Sprintf(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique ON %s (email) WHERE TRIM(COALESCE(email, '')) != ''`, table),
 			fmt.Sprintf(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone_unique ON %s (phone) WHERE TRIM(COALESCE(phone, '')) != ''`, table),
 			fmt.Sprintf(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_sub_unique ON %s (google_sub) WHERE TRIM(COALESCE(google_sub, '')) != ''`, table),
+			fmt.Sprintf(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_oauth_sub_unique ON %s (provider, oauth_sub) WHERE TRIM(COALESCE(oauth_sub, '')) != ''`, table),
 		}
 		for _, q := range indexes {
 			if _, err := db.ExecContext(ctx, q); err != nil {
@@ -188,6 +202,7 @@ CREATE TABLE IF NOT EXISTS %s (
 				return err
 			}
 		}
+		_, _ = db.ExecContext(ctx, fmt.Sprintf(`ALTER TABLE %s ADD COLUMN oauth_sub VARCHAR(255)`, table))
 		return nil
 	}
 }
@@ -377,6 +392,28 @@ func (s *SQLStore) ListProjectAuthUsersByGoogleSub(ctx context.Context, tenantID
 	return rows, err
 }
 
+func (s *SQLStore) ListProjectAuthUsersByOAuthSub(ctx context.Context, tenantID, provider, oauthSub string) ([]*models.ProjectAuthUser, error) {
+	if s == nil || s.DB == nil {
+		return nil, errors.New("projectauthusers: nil store")
+	}
+	prov := strings.ToLower(strings.TrimSpace(provider))
+	sub := strings.TrimSpace(oauthSub)
+	if prov == "" || sub == "" {
+		return nil, nil
+	}
+	if err := s.EnsureUsersTable(ctx); err != nil {
+		return nil, err
+	}
+	var rows []*models.ProjectAuthUser
+	q := s.DB.NewSelect().Model(&rows).
+		Where("provider = ?", prov).
+		Where("oauth_sub = ?", sub).
+		Order("created_at ASC")
+	q = tenantFilter(q, tenantID)
+	err := q.Scan(ctx)
+	return rows, err
+}
+
 type roleCountRow struct {
 	Role  string `bun:"role"`
 	Count int    `bun:"count"`
@@ -447,7 +484,7 @@ func (s *SQLStore) UpdateProjectAuthUser(ctx context.Context, row *models.Projec
 		return err
 	}
 	row.UpdatedAt = time.Now().UTC()
-	cols := []string{"username", "email", "phone", "secret", "role", "provider", "google_sub", "status", "updated_at"}
+	cols := []string{"username", "email", "phone", "secret", "role", "provider", "google_sub", "oauth_sub", "status", "updated_at"}
 	if tid := strings.TrimSpace(row.TenantID); tid != "" {
 		cols = append(cols, "tenant_id")
 	}

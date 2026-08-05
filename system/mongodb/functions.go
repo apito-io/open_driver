@@ -71,6 +71,9 @@ func (m *SystemMongoDriver) CheckProjectName(ctx context.Context, name string) e
 
 // SearchProjects searches for projects based on common system parameters using MongoDB
 func (m *SystemMongoDriver) SearchProjects(ctx context.Context, param *models.CommonSystemParams) (*models.SearchResponse[models.Project], error) {
+	if param == nil {
+		param = &models.CommonSystemParams{}
+	}
 	collection := m.Database.Collection("projects")
 
 	filter := bson.M{}
