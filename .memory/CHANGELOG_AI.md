@@ -1,5 +1,15 @@
 # open_driver — AI Changelog
 
+## 2026-08-06 — v1.0.13 oauth_sub + migrate order fix
+
+- **Changed:** `oauth_sub` column/indexes; `ListProjectAuthUsersByOAuthSub`;
+  ALTER ADD COLUMN **before** indexes that reference it. Regression test
+  on legacy schema without column.
+- **Why:** Android `loginUser` failed `no such column: oauth_sub` —
+  CREATE INDEX ran before ALTER on existing SQLite.
+- **Affected:** `project/projectauthusers/sql.go`, `sql_test.go`. Tag
+  **v1.0.13** pending confirm.
+
 ## 2026-08-05 — v1.0.12 list ORDER BY from sort arg
 
 - **Changed:** `sqlquery.RootListOrderByFromArgs` applies GraphQL `sort` for
