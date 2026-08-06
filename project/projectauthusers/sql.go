@@ -111,6 +111,8 @@ CREATE TABLE IF NOT EXISTS %s (
 		if err != nil {
 			return err
 		}
+		// Existing DBs: add oauth_sub before indexes that reference it.
+		_, _ = db.ExecContext(ctx, fmt.Sprintf(`ALTER TABLE %s ADD COLUMN IF NOT EXISTS oauth_sub VARCHAR(255)`, table))
 		indexes := []string{
 			fmt.Sprintf(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_tenant_username ON %s (tenant_id, username)`, table),
 			fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_users_tenant ON %s (tenant_id)`, table),
@@ -127,7 +129,6 @@ CREATE TABLE IF NOT EXISTS %s (
 				return err
 			}
 		}
-		_, _ = db.ExecContext(ctx, fmt.Sprintf(`ALTER TABLE %s ADD COLUMN IF NOT EXISTS oauth_sub VARCHAR(255)`, table))
 		return nil
 	case dialect.MySQL.String():
 		_, err := db.ExecContext(ctx, fmt.Sprintf(`
@@ -181,6 +182,8 @@ CREATE TABLE IF NOT EXISTS %s (
 		if err != nil {
 			return err
 		}
+		// Existing DBs created before oauth_sub: ALTER must run before indexes on that column.
+		_, _ = db.ExecContext(ctx, fmt.Sprintf(`ALTER TABLE %s ADD COLUMN oauth_sub VARCHAR(255)`, table))
 		indexes := []string{
 			fmt.Sprintf(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_tenant_username ON %s (tenant_id, username)`, table),
 			fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_users_tenant ON %s (tenant_id)`, table),
@@ -202,7 +205,6 @@ CREATE TABLE IF NOT EXISTS %s (
 				return err
 			}
 		}
-		_, _ = db.ExecContext(ctx, fmt.Sprintf(`ALTER TABLE %s ADD COLUMN oauth_sub VARCHAR(255)`, table))
 		return nil
 	}
 }

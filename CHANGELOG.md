@@ -1,5 +1,11 @@
 # open_driver changelog
 
+## [1.0.14] — 2026-08-06
+
+### Project auth users
+
+- **Fix:** run `ALTER … ADD COLUMN oauth_sub` **before** indexes that reference it (existing SQLite DBs were failing `loginUser` with `no such column: oauth_sub`).
+
 ## [1.0.13] — 2026-08-05
 
 ### Project auth users

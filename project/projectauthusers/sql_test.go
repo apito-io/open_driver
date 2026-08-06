@@ -231,3 +231,45 @@ func TestSQLStoreSearchProjectAuthUsersQFilter(t *testing.T) {
 	require.Equal(t, 3, count)
 	require.Len(t, rows, 3)
 }
+
+func TestEnsureUsersTableMigratesLegacySchemaWithoutOAuthSub(t *testing.T) {
+	sqldb, err := sql.Open("sqlite", "file:authusers_legacy_oauth?mode=memory&cache=shared")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sqldb.Close() })
+
+	db := bun.NewDB(sqldb, sqlitedialect.New())
+	ctx := context.Background()
+
+	_, err = db.ExecContext(ctx, `
+CREATE TABLE users (
+	id VARCHAR(36) NOT NULL PRIMARY KEY,
+	tenant_id VARCHAR(36),
+	username VARCHAR(255) NOT NULL,
+	email VARCHAR(255),
+	phone VARCHAR(64),
+	secret TEXT,
+	role VARCHAR(64) NOT NULL,
+	provider VARCHAR(32) NOT NULL,
+	google_sub VARCHAR(255),
+	status VARCHAR(32) NOT NULL,
+	created_at TEXT,
+	updated_at TEXT
+);`)
+	require.NoError(t, err)
+	_, err = db.ExecContext(ctx, `
+INSERT INTO users (id, username, email, secret, role, provider, google_sub, status, created_at, updated_at)
+VALUES ('u1', 'alice', 'alice@example.com', 'hash', 'none', 'google', 'gsub1', 'active', datetime('now'), datetime('now'));`)
+	require.NoError(t, err)
+
+	store := &projectauthusers.SQLStore{DB: db}
+	require.NoError(t, store.EnsureUsersTable(ctx))
+
+	byGoogle, err := store.ListProjectAuthUsersByGoogleSub(ctx, "", "gsub1")
+	require.NoError(t, err)
+	require.Len(t, byGoogle, 1)
+	require.Equal(t, "u1", byGoogle[0].ID)
+
+	byOAuth, err := store.ListProjectAuthUsersByOAuthSub(ctx, "", "github", "missing")
+	require.NoError(t, err)
+	require.Len(t, byOAuth, 0)
+}
