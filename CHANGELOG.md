@@ -1,5 +1,15 @@
 # open_driver changelog
 
+## [1.0.15] — 2026-08-07
+
+### System project_users
+
+- **`oauth_sub`** ALTER + indexes on system `project_users` (Bun
+  `CreateTable().IfNotExists()` never adds columns). Fixes SaaS
+  `createUser` / Pro uniqueness SELECTs failing with
+  `no such column: pu.oauth_sub`.
+- UpdateUser columns include `oauth_sub` (SQL + Mongo).
+
 ## [1.0.14] — 2026-08-06
 
 ### Project auth users

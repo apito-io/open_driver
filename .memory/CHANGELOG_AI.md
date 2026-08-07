@@ -1,5 +1,16 @@
 # open_driver — AI Changelog
 
+## 2026-08-07 — v1.0.15 project_users.oauth_sub
+
+- **Changed:** `EnsureProjectUsersOAuthSubColumn` on system SQL migrate;
+  UpdateUser includes `oauth_sub`. Pro `ensureProUsersSQLMigration` also
+  calls it.
+- **Why:** SaaS `createUser` SELECT/INSERT on `project_users` (`pu`) failed
+  `no such column: pu.oauth_sub` — only project DB `users` was migrated in
+  v1.0.13/14.
+- **Affected:** `system/sqlcommon/project_users_oauth_sub.go`, system
+  init/users, mongodb UpdateUser, pro sqlpro. Tag **v1.0.15** pending.
+
 ## 2026-08-06 — v1.0.13 oauth_sub + migrate order fix
 
 - **Changed:** `oauth_sub` column/indexes; `ListProjectAuthUsersByOAuthSub`;

@@ -1,8 +1,7 @@
 # open_driver — Handoff
 
-- `main` — code for **v1.0.13** ready; tag after user confirm.
-- Pair with open-core **v1.8.10** + engine pin **v2.4.27**.
-- Redeploy Studio/engine so tenant DBs get `oauth_sub` on next login.
+- Tag/push **v1.0.15**; engine pin **v2.4.31** + Studio redeploy.
+- Restart local engine so RunMigration adds column on system DB.
 
 ## Last Updated
-2026-08-06
+2026-08-07

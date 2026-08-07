@@ -209,7 +209,7 @@ func (m *SystemMongoDriver) UpdateUser(ctx context.Context, row *models.User) er
 		bson.M{"$set": bson.M{
 			"username": row.Username, "email": row.Email, "phone": row.Phone,
 			"secret": row.Secret, "role": row.Role, "provider": row.Provider,
-			"google_sub": row.GoogleSub, "status": row.Status, "updated_at": row.UpdatedAt,
+			"google_sub": row.GoogleSub, "oauth_sub": row.OAuthSub, "status": row.Status, "updated_at": row.UpdatedAt,
 		}},
 	)
 	return err

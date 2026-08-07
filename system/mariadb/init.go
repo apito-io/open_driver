@@ -62,6 +62,9 @@ func (d *Driver) RunMigration(ctx context.Context) error {
 	if err := sqlcommon.EnsureSystemUserAccessTokensColumn(ctx, d.ORM); err != nil {
 		return err
 	}
+	if err := sqlcommon.EnsureProjectUsersOAuthSubColumn(ctx, d.ORM); err != nil {
+		return err
+	}
 	if err := sqlcommon.EnsureApitoFunctionsCompositePK(ctx, d.ORM); err != nil {
 		return err
 	}

@@ -218,7 +218,7 @@ func (d *Driver) UpdateUser(ctx context.Context, row *models.User) error {
 	}
 	row.UpdatedAt = time.Now().UTC()
 	_, err := d.ORM.NewUpdate().Model(row).
-		Column("username", "email", "phone", "secret", "role", "provider", "google_sub", "status", "updated_at").
+		Column("username", "email", "phone", "secret", "role", "provider", "google_sub", "oauth_sub", "status", "updated_at").
 		Where("id = ? AND project_id = ?", row.ID, row.ProjectID).
 		Exec(ctx)
 	return err

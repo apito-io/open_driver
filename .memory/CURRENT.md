@@ -1,9 +1,8 @@
 # open_driver — Current
 
-- **v1.0.13 (local, untagged):** `oauth_sub` on project `users` +
-  `ListProjectAuthUsersByOAuthSub`; **fix** ALTER before oauth indexes
-  (legacy SQLite `loginUser`).
-- Prior **v1.0.12:** RootListOrderByFromArgs.
+- **v1.0.15 (local):** system `project_users.oauth_sub` ALTER + indexes;
+  UpdateUser columns. Fixes SaaS createUser `pu.oauth_sub`.
+- Prior **v1.0.14:** project `users` ALTER-before-indexes.
 
 ## Last Updated
-2026-08-06
+2026-08-07
