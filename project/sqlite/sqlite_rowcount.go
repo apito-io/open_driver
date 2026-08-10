@@ -203,8 +203,10 @@ func (d *Driver) tryCountFromRowCountTable(ctx context.Context, param *models.Co
 		return 0, false, nil
 	}
 	modelName := utility.PhysicalSQLTableName(param.Model.Name)
-	if permission, ok := utility.LookupAPIPermission(param.Role, modelName); ok && permission.Read == "own" {
-		return 0, false, nil
+	if !utility.RoleBypassesDataACL(param.Role) {
+		if permission := utility.EffectivePermission(param.Role, modelName); permission != nil && permission.Read == "own" {
+			return 0, false, nil
+		}
 	}
 	if err := d.ensureApitoRowCountsTable(ctx); err != nil {
 		return 0, false, err

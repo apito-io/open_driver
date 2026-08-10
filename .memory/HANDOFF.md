@@ -1,7 +1,7 @@
 # open_driver — Handoff
 
-- Tag/push **v1.0.15**; engine pin **v2.4.31** + Studio redeploy.
-- Restart local engine so RunMigration adds column on system DB.
+- Tag **v1.0.15** on `main` — live on udbhabon Studio (engine v2.4.31).
+- No further oauth_sub work pending unless new dialect gap.
 
 ## Last Updated
-2026-08-07
+2026-08-08

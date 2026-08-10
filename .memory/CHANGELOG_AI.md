@@ -1,5 +1,10 @@
 # open_driver — AI Changelog
 
+## 2026-08-08 — v1.0.15 on Studio prod
+
+- **Changed:** Tag **v1.0.15** live via engine **v2.4.31** Studio deploy.
+- **Why:** Close SaaS createUser `pu.oauth_sub` gap on production.
+
 ## 2026-08-07 — v1.0.15 project_users.oauth_sub
 
 - **Changed:** `EnsureProjectUsersOAuthSubColumn` on system SQL migrate;

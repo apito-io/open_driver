@@ -469,7 +469,7 @@ func (s *SQLStore) SearchProjectAuthUsers(ctx context.Context, tenantID, q strin
 		return nil, 0, err
 	}
 	var rows []*models.ProjectAuthUser
-	listQ := s.DB.NewSelect().Model(&rows).Order("created_at ASC").Limit(limit).Offset(offset)
+	listQ := s.DB.NewSelect().Model(&rows).Order("created_at DESC").Limit(limit).Offset(offset)
 	listQ = tenantFilter(listQ, tenantID)
 	listQ = authUserSearchFilter(listQ, q)
 	if err := listQ.Scan(ctx); err != nil {

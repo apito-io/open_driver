@@ -1350,7 +1350,15 @@ func rootResolverQueryBuilder(cfg *models.Config, param *models.CommonSystemPara
 
 	tableName := utility.PhysicalSQLTableName(param.Model.Name)
 
-	if !returnCount && (param.Model == nil || !models.ModelIsProjectAuthUserModel(param.Model)) {
+	ownFilter := false
+	if !utility.RoleBypassesDataACL(param.Role) {
+		if permission := utility.EffectivePermission(param.Role, modelName); permission != nil && permission.Read == "own" {
+			ownFilter = true
+		}
+	}
+
+	// Meta join is needed for list projection and for own ACL (list + count).
+	if (!returnCount || ownFilter) && (param.Model == nil || !models.ModelIsProjectAuthUserModel(param.Model)) {
 		leftJoins = append(leftJoins, `left join meta as y on y.doc_id = x.id`)
 	}
 
@@ -1374,15 +1382,10 @@ func rootResolverQueryBuilder(cfg *models.Config, param *models.CommonSystemPara
 		filters["AND"] = append(filters["AND"], relationPreds...)
 	}
 
-	// filter based on roles
-	if permission, ok := utility.LookupAPIPermission(param.Role, modelName); ok {
-		switch permission.Read {
-		case "own":
-			if !returnCount {
-				filters["AND"] = append(filters["AND"], `y.created_by = ?`)
-				sqlArgs = append(sqlArgs, param.UserID)
-			}
-		}
+	// filter based on roles (own applies to list and count)
+	if ownFilter {
+		filters["AND"] = append(filters["AND"], `y.created_by = ?`)
+		sqlArgs = append(sqlArgs, param.UserID)
 	}
 	if err := mergeQueryFilterHookSQL(cfg, param, filters, "x", &sqlArgs); err != nil {
 		return "", nil, err
