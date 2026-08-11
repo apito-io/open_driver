@@ -74,6 +74,15 @@ func (d *Driver) RunMigration(ctx context.Context) error {
 	if err := sqlcommon.EnsureProjectPlansColumn(ctx, d.ORM); err != nil {
 		return err
 	}
+	if err := sqlcommon.EnsureProjectIconColumn(ctx, d.ORM); err != nil {
+		return err
+	}
+	if err := sqlcommon.EnsureProjectPlanSeedOmissionsColumn(ctx, d.ORM); err != nil {
+		return err
+	}
+	if err := sqlcommon.NormalizeAllProjectPlanSystemFlags(ctx, d.ORM); err != nil {
+		return err
+	}
 	if err := sqlcommon.EnsureApitoFunctionsCompositePK(ctx, d.ORM); err != nil {
 		return err
 	}

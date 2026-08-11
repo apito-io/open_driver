@@ -509,5 +509,46 @@ func (m *SystemMongoDriver) RunMigration(ctx context.Context) error {
 		}
 	}
 
+	if err := m.normalizeAllProjectPlanSystemFlags(ctx); err != nil {
+		return err
+	}
 	return nil
+}
+
+// normalizeAllProjectPlanSystemFlags mirrors sqlcommon.NormalizeAllProjectPlanSystemFlags.
+func (m *SystemMongoDriver) normalizeAllProjectPlanSystemFlags(ctx context.Context) error {
+	if m == nil || m.Database == nil {
+		return nil
+	}
+	coll := m.Database.Collection("projects")
+	cur, err := coll.Find(ctx, bson.M{}, options.Find().SetProjection(bson.M{
+		"_id": 1, "plans": 1, "plan_seed_omissions": 1,
+	}))
+	if err != nil {
+		return fmt.Errorf("list projects for plan flag normalize: %w", err)
+	}
+	defer cur.Close(ctx)
+	for cur.Next(ctx) {
+		var project models.Project
+		if err := cur.Decode(&project); err != nil {
+			return fmt.Errorf("decode project for plan flag normalize: %w", err)
+		}
+		if project.ID == "" {
+			continue
+		}
+		if !models.EnsureProjectPlansSeeds(&project) {
+			continue
+		}
+		project.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+		if _, err := coll.UpdateOne(ctx, bson.M{"_id": project.ID}, bson.M{
+			"$set": bson.M{
+				"plans":               project.Plans,
+				"plan_seed_omissions": project.PlanSeedOmissions,
+				"updated_at":          project.UpdatedAt,
+			},
+		}); err != nil {
+			return fmt.Errorf("persist plan flags for project %s: %w", project.ID, err)
+		}
+	}
+	return cur.Err()
 }

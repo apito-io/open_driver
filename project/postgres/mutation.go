@@ -123,6 +123,20 @@ func (a *Driver) CheckTableOrCollectionExists(ctx context.Context, param *models
 	return count > 0, nil
 }
 
+// ListTableColumnNames implements interfaces.PhysicalTableColumnLister (read-only health).
+func (a *Driver) ListTableColumnNames(ctx context.Context, tableName string) ([]string, error) {
+	tableName = strings.TrimSpace(tableName)
+	if tableName == "" {
+		return nil, nil
+	}
+	var names []string
+	err := a.ORM.NewRaw(`
+		SELECT column_name FROM information_schema.columns
+		WHERE table_schema = 'public' AND table_name = ?
+		ORDER BY ordinal_position`, tableName).Scan(ctx, &names)
+	return names, err
+}
+
 func (d *Driver) AddModel(ctx context.Context, project *models.Project, model *models.ModelType) (*models.ProjectSchema, error) {
 
 	// if schema not found then create

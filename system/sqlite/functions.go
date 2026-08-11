@@ -748,10 +748,13 @@ func (d *Driver) syncProjectSettingsTx(ctx context.Context, tx bun.Tx, project *
 	}
 	st := project.Settings
 	if st == nil {
-		st = &models.ProjectSettings{Locals: []string{"en"}}
+		st = &models.ProjectSettings{Locals: []string{"en"}, IdleTenantRetentionDays: models.MinIdleTenantRetentionDays}
 		project.Settings = st
 	} else if len(st.Locals) == 0 {
 		st.Locals = []string{"en"}
+	}
+	if st.IdleTenantRetentionDays <= 0 {
+		st.IdleTenantRetentionDays = models.MinIdleTenantRetentionDays
 	}
 	st.ProjectID = project.ID
 

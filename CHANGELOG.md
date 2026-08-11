@@ -1,5 +1,22 @@
 # open_driver changelog
 
+## [1.0.17] — 2026-08-11
+
+### Project settings
+
+- **Idle tenant columns** on SQL `project_settings`: `idle_tenant_retention_days` (default 90), `auto_soft_delete_idle_tenants` (default false). ALTER ensures on SQLite / Postgres / MySQL / MariaDB persist paths.
+
+### System / project SQL
+
+- Project icon column + plan seed omissions / system-flag helpers (`sqlcommon`).
+- Project mutation / init updates across SQLite, Postgres, MySQL, MariaDB, Mongo, D1.
+
+## [1.0.16] — 2026-08-11
+
+### Notes
+
+- Tag already pinned by engine Studio prep. Changelog catch-up.
+
 ## [1.0.15] — 2026-08-07
 
 ### System project_users

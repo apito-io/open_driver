@@ -38,6 +38,28 @@ func (d *Driver) CheckTableOrCollectionExists(ctx context.Context, param *models
 	}
 }
 
+// ListTableColumnNames implements interfaces.PhysicalTableColumnLister (read-only health).
+func (d *Driver) ListTableColumnNames(ctx context.Context, tableName string) ([]string, error) {
+	tableName = strings.TrimSpace(tableName)
+	if d == nil || d.DB == nil || tableName == "" {
+		return nil, nil
+	}
+	rows, err := d.DB.Query(ctx, `SELECT name FROM pragma_table_info(?)`, tableName)
+	if err != nil {
+		return nil, err
+	}
+	var names []string
+	for _, row := range rows {
+		if row == nil {
+			continue
+		}
+		if v, ok := row["name"].(string); ok && v != "" {
+			names = append(names, v)
+		}
+	}
+	return names, nil
+}
+
 func (d *Driver) AddModel(ctx context.Context, project *models.Project, model *models.ModelType) (*models.ProjectSchema, error) {
 	if project == nil || model == nil {
 		return nil, fmt.Errorf("cloudflared1: project and model required")
