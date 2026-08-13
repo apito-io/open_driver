@@ -1,9 +1,8 @@
 # open_driver — Current
 
-- **Released v1.0.15:** system `project_users.oauth_sub` ALTER + indexes;
-  UpdateUser includes `oauth_sub`. Tagged/pushed; on Studio via engine
-  **v2.4.31**.
-- Prior **v1.0.14:** project `users` ALTER-before-indexes.
+- **v1.0.18 (2026-08-14):** `SearchSystemUsers` honors `where.email.eq`
+  on sqlite/postgres/mysql/mariadb via `sqlcommon.EmailEqFromParams`.
+- Prior **v1.0.15:** system `project_users.oauth_sub` ALTER + indexes.
 
 ## Last Updated
-2026-08-08
+2026-08-14

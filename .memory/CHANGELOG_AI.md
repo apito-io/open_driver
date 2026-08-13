@@ -1,5 +1,11 @@
 # open_driver — AI Changelog
 
+## 2026-08-14 — SearchSystemUsers email eq (v1.0.18)
+
+- **Changed:** sqlite/postgres/mysql/mariadb `SearchSystemUsers` filters `where.email.eq` via `sqlcommon.EmailEqFromParams`. Tag **v1.0.18**.
+- **Why:** Unfiltered search made console Google OAuth treat `Results[0]` as the login user (bootstrap admin).
+- **Affected:** `system/sqlcommon/email_eq.go`, `system/{sqlite,postgres,mysql,mariadb}/functions.go`. Engine pin → v1.0.18.
+
 ## 2026-08-08 — v1.0.15 on Studio prod
 
 - **Changed:** Tag **v1.0.15** live via engine **v2.4.31** Studio deploy.
