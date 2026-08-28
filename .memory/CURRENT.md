@@ -1,8 +1,10 @@
 # open_driver — Current
 
-- **v1.0.18 (2026-08-14):** `SearchSystemUsers` honors `where.email.eq`
-  on sqlite/postgres/mysql/mariadb via `sqlcommon.EmailEqFromParams`.
-- Prior **v1.0.15:** system `project_users.oauth_sub` ALTER + indexes.
+- **1.0.19 (2026-08-22, unreleased):** `system_users.is_super_admin`
+  ALTER; bootstrap + `RepairSuperAdminEmails`; unscoped
+  `SearchSystemUsers` empty without filter.
+- **v1.0.18 (tagged 2026-08-14):** `SearchSystemUsers` honors
+  `where.email.eq`. Do **not** reuse this tag for super-admin.
 
 ## Last Updated
-2026-08-14
+2026-08-28

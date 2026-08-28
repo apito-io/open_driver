@@ -15,6 +15,9 @@ func (d *ProBBoltSystemDriver) EnsureSystemBootstrap(ctx context.Context) error 
 	if err := d.ensureBootstrapAdmin(ctx); err != nil {
 		return err
 	}
+	if err := bootstrapmeta.RepairSuperAdminEmails(ctx, d.GetSystemUserByEmail, d.UpdateSystemUser); err != nil {
+		return err
+	}
 	return d.ensureBootstrapOrgTeamProject(ctx)
 }
 
@@ -43,6 +46,8 @@ func (d *ProBBoltSystemDriver) ensureBootstrapAdmin(ctx context.Context) error {
 		LastName:                  bootstrapmeta.AdminLastName,
 		Secret:                    string(hash),
 		IsAdmin:                   true,
+		IsSuperAdmin:              true,
+		IsActive:                  true,
 		AdministrativePermissions: []string{"all"},
 		CreatedAt:                 now,
 		UpdatedAt:                 now,

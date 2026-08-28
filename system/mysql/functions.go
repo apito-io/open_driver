@@ -272,25 +272,7 @@ func (d *Driver) DeleteWebhook(ctx context.Context, projectId, hookId string) er
 
 // SearchSystemUsers searches for system users based on parameters using SQL
 func (d *Driver) SearchSystemUsers(ctx context.Context, param *models.CommonSystemParams) (*models.SearchResponse[models.SystemUser], error) {
-	var users []*models.SystemUser
-
-	query := d.ORM.NewSelect().Model(&users)
-	if emailEq := sqlcommon.EmailEqFromParams(param); emailEq != "" {
-		query = query.Where("email = ?", emailEq)
-	}
-
-	// Add pagination (can be implemented based on ResolveParams if needed)
-	// For now, using default limits
-	query = query.Limit(100) // Default limit
-
-	err := query.Scan(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return &models.SearchResponse[models.SystemUser]{
-		Results: users,
-	}, nil
+	return sqlcommon.SearchSystemUsers(ctx, d.ORM, param)
 }
 
 // AddSystemUserMetaInfo adds metadata to a system user using SQL

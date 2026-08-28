@@ -126,6 +126,9 @@ func (d *Driver) UpdateSystemUser(ctx context.Context, user *models.SystemUser, 
 }
 
 func (d *Driver) SearchSystemUsers(ctx context.Context, param *models.CommonSystemParams) (*models.SearchResponse[models.SystemUser], error) {
+	if param == nil || (!param.AllowUnscopedSystemUserList && !param.HasSystemUserSearchFilter()) {
+		return &models.SearchResponse[models.SystemUser]{Results: []*models.SystemUser{}}, nil
+	}
 	email := extractEmailEq(param)
 	var rows []map[string]any
 	var err error
@@ -189,6 +192,8 @@ func (d *Driver) ensureBootstrapAdmin(ctx context.Context) error {
 		LastName:                  bootstrapmeta.AdminLastName,
 		Secret:                    string(hash),
 		IsAdmin:                   true,
+		IsSuperAdmin:              true,
+		IsActive:                  true,
 		AdministrativePermissions: []string{"all"},
 		CreatedAt:                 now,
 		UpdatedAt:                 now,

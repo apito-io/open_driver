@@ -39,6 +39,8 @@ func (d *Driver) ensureBootstrapAdmin(ctx context.Context) error {
 		LastName:                  bootstrapmeta.AdminLastName,
 		Secret:                    string(hash),
 		IsAdmin:                   true,
+		IsSuperAdmin:              true,
+		IsActive:                  true,
 		AdministrativePermissions: []string{"all"},
 		CreatedAt:                 now,
 		UpdatedAt:                 now,

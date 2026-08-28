@@ -126,6 +126,9 @@ func (d *ProBBoltSystemDriver) GetSystemUsers(ctx context.Context, keys []string
 }
 
 func (d *ProBBoltSystemDriver) SearchSystemUsers(ctx context.Context, param *models.CommonSystemParams) (*models.SearchResponse[models.SystemUser], error) {
+	if param == nil || (!param.AllowUnscopedSystemUserList && !param.HasSystemUserSearchFilter()) {
+		return &models.SearchResponse[models.SystemUser]{Results: []*models.SystemUser{}}, nil
+	}
 	collection := d.DB.Collection("users")
 	var users []models.SystemUser
 

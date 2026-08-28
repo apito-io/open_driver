@@ -1,5 +1,19 @@
 # open_driver changelog
 
+## [1.0.19] — 2026-08-22 (unreleased)
+
+### System users
+
+- **`system_users.is_super_admin`** ALTER (`EnsureSystemUserIsSuperAdminColumn`) on SQLite / Postgres / MySQL / MariaDB.
+- Bootstrap `admin@apito.io` sets `IsSuperAdmin`. Idempotent repair via `SUPER_ADMIN_EMAILS` (default `admin@apito.io`).
+- **`SearchSystemUsers`** refuses unscoped dumps without an email/name filter; `AllowUnscopedSystemUserList` is reserved for `searchPlatformAccounts`.
+
+## [1.0.18] — 2026-08-14
+
+### System users
+
+- **`SearchSystemUsers`** honors `where.email.eq` on sqlite/postgres/mysql/mariadb (`sqlcommon.EmailEqFromParams`). Stops unfiltered search from returning bootstrap admin as `Results[0]`.
+
 ## [1.0.17] — 2026-08-11
 
 ### Project settings

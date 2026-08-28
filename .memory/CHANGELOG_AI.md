@@ -1,5 +1,17 @@
 # open_driver — AI Changelog
 
+## 2026-08-22 — is_super_admin column + unscoped search (1.0.19 unreleased)
+
+- **Changed:** `EnsureSystemUserIsSuperAdminColumn`; bootstrap
+  `admin@apito.io` sets `IsSuperAdmin`; `RepairSuperAdminEmails` on
+  `EnsureSystemBootstrap`. Unscoped `SearchSystemUsers` returns empty
+  unless `AllowUnscopedSystemUserList` or an email/name filter.
+- **Why:** Flag must persist independently of `IsAdmin`; catalog dump
+  was a privilege hole.
+- **Affected:** `system/sqlcommon/is_super_admin_column.go`,
+  `system/bootstrapmeta/super_admin.go`, SQL/mongo/bbolt/d1/arango
+  bootstrap. Next tag **v1.0.19** (do not overwrite tagged v1.0.18).
+
 ## 2026-08-14 — SearchSystemUsers email eq (v1.0.18)
 
 - **Changed:** sqlite/postgres/mysql/mariadb `SearchSystemUsers` filters `where.email.eq` via `sqlcommon.EmailEqFromParams`. Tag **v1.0.18**.

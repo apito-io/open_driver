@@ -8,6 +8,7 @@ import (
 
 	"github.com/apito-io/engine/models"
 	"gitlab.com/apito.io/open_driver/cfd1"
+	"gitlab.com/apito.io/open_driver/system/bootstrapmeta"
 )
 
 func (d *Driver) RunMigration(ctx context.Context) error {
@@ -200,7 +201,10 @@ func (d *Driver) migrateProTenantsColumns(ctx context.Context) error {
 }
 
 func (d *Driver) EnsureSystemBootstrap(ctx context.Context) error {
-	return d.ensureBootstrapAdmin(ctx)
+	if err := d.ensureBootstrapAdmin(ctx); err != nil {
+		return err
+	}
+	return bootstrapmeta.RepairSuperAdminEmails(ctx, d.GetSystemUserByEmail, d.UpdateSystemUser)
 }
 
 func (d *Driver) PersistProjectModelTypes(ctx context.Context, projectID string, schemaModels []*models.ModelType) error {

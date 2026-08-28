@@ -36,7 +36,21 @@ func TestEnsureSystemBootstrap_SeedsAdminAndStarterGraph(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, u)
 	require.Equal(t, bootstrapmeta.AdminEmail, u.Email)
+	require.True(t, u.IsSuperAdmin)
 	require.NotEmpty(t, u.DefaultTeamID)
+
+	empty, err := drv.SearchSystemUsers(ctx, &models.CommonSystemParams{})
+	require.NoError(t, err)
+	require.Empty(t, empty.Results)
+
+	unscoped, err := drv.SearchSystemUsers(ctx, &models.CommonSystemParams{AllowUnscopedSystemUserList: true})
+	require.NoError(t, err)
+	require.NotEmpty(t, unscoped.Results)
+
+	filtered, err := drv.SearchSystemUsers(ctx, &models.CommonSystemParams{Email: bootstrapmeta.AdminEmail})
+	require.NoError(t, err)
+	require.Len(t, filtered.Results, 1)
+	require.True(t, filtered.Results[0].IsSuperAdmin)
 	require.NotEmpty(t, u.DefaultOrganizationID)
 
 	proj, err := drv.GetProject(ctx, bootstrapmeta.StarterProjectID)

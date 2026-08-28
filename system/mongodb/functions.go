@@ -191,6 +191,9 @@ func (m *SystemMongoDriver) DeleteWebhook(ctx context.Context, projectId, hookId
 
 // SearchSystemUsers searches for system users based on parameters using MongoDB
 func (m *SystemMongoDriver) SearchSystemUsers(ctx context.Context, param *models.CommonSystemParams) (*models.SearchResponse[models.SystemUser], error) {
+	if param == nil || (!param.AllowUnscopedSystemUserList && !param.HasSystemUserSearchFilter()) {
+		return &models.SearchResponse[models.SystemUser]{Results: []*models.SystemUser{}}, nil
+	}
 	collection := m.Database.Collection("users")
 
 	filter := bson.M{}

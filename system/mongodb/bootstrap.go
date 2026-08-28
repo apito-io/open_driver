@@ -29,6 +29,9 @@ func (m *SystemMongoDriver) EnsureSystemBootstrap(ctx context.Context) error {
 	if err := m.ensureBootstrapAdmin(ctx); err != nil {
 		return err
 	}
+	if err := bootstrapmeta.RepairSuperAdminEmails(ctx, m.GetSystemUserByEmail, m.UpdateSystemUser); err != nil {
+		return err
+	}
 	if err := m.ensureBootstrapOrgTeamProject(ctx); err != nil {
 		return err
 	}
@@ -93,6 +96,8 @@ func (m *SystemMongoDriver) ensureBootstrapAdmin(ctx context.Context) error {
 		LastName:                  bootstrapmeta.AdminLastName,
 		Secret:                    string(hash),
 		IsAdmin:                   true,
+		IsSuperAdmin:              true,
+		IsActive:                  true,
 		AdministrativePermissions: []string{"all"},
 		CreatedAt:                 now,
 		UpdatedAt:                 now,

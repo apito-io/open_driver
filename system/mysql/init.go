@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"gitlab.com/apito.io/open_driver/system/bootstrapmeta"
 	"gitlab.com/apito.io/open_driver/system/sqlcommon"
 	"github.com/apito-io/engine/interfaces"
 	"github.com/apito-io/engine/models"
@@ -62,6 +63,9 @@ func (d *Driver) RunMigration(ctx context.Context) error {
 	if err := sqlcommon.EnsureSystemUserAccessTokensColumn(ctx, d.ORM); err != nil {
 		return err
 	}
+	if err := sqlcommon.EnsureSystemUserIsSuperAdminColumn(ctx, d.ORM); err != nil {
+		return err
+	}
 	if err := sqlcommon.EnsureProjectUsersOAuthSubColumn(ctx, d.ORM); err != nil {
 		return err
 	}
@@ -91,6 +95,9 @@ func (d *Driver) RunMigration(ctx context.Context) error {
 
 func (d *Driver) EnsureSystemBootstrap(ctx context.Context) error {
 	if err := d.ensureBootstrapAdmin(ctx); err != nil {
+		return err
+	}
+	if err := bootstrapmeta.RepairSuperAdminEmails(ctx, d.GetSystemUserByEmail, d.UpdateSystemUser); err != nil {
 		return err
 	}
 	if err := d.ensureBootstrapOrgTeamProject(ctx); err != nil {
