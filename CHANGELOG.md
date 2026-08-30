@@ -1,6 +1,17 @@
 # open_driver changelog
 
-## [1.0.19] — 2026-08-22 (unreleased)
+## [1.0.20] — 2026-08-30
+
+### System users
+
+- **`SearchSystemUsers`** sets `Total` from `COUNT(*)` (not `len(page)`), so Accounts pagination is not capped at the page size.
+- **`ListUserProjects`** returns `user_projects` rows with project name for a batch of user IDs.
+
+### Teams
+
+- **`ListTeams`** (SQLite) hydrates `ProjectAssignedRole` / `ProjectAccessPermissions` from `user_projects`.
+
+## [1.0.19] — 2026-08-22
 
 ### System users
 

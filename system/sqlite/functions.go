@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"gitlab.com/apito.io/open_driver/system/sqlcommon"
 	"time"
 
@@ -202,7 +203,10 @@ func (d *Driver) ListAllUsers(ctx context.Context) ([]*models.SystemUser, error)
 	return users, err
 }
 
-// ListTeams lists team members for a project using SQL
+// ListTeams lists team members for a project using SQL.
+// Membership for the Teams settings page lives in project_teams; role/permissions
+// live on user_projects (same split as AddATeamMemberToProject). Hydrate both so
+// the Role / Permissions columns are not blank.
 func (d *Driver) ListTeams(ctx context.Context, projectId string) ([]*models.SystemUser, error) {
 	var users []*models.SystemUser
 
@@ -211,8 +215,45 @@ func (d *Driver) ListTeams(ctx context.Context, projectId string) ([]*models.Sys
 		Join("JOIN project_teams pt ON pt.user_id = system_user.id").
 		Where("pt.project_id = ?", projectId).
 		Scan(ctx)
+	if err != nil || len(users) == 0 {
+		return users, err
+	}
 
-	return users, err
+	type membership struct {
+		UserID      string `bun:"user_id"`
+		Role        string `bun:"role"`
+		Permissions string `bun:"permissions"`
+	}
+	var rows []membership
+	if err := d.ORM.NewSelect().
+		TableExpr("user_projects").
+		Column("user_id", "role", "permissions").
+		Where("project_id = ?", projectId).
+		Scan(ctx, &rows); err != nil {
+		return users, err
+	}
+	byID := make(map[string]membership, len(rows))
+	for _, r := range rows {
+		byID[r.UserID] = r
+	}
+	for _, u := range users {
+		if u == nil {
+			continue
+		}
+		m, ok := byID[u.ID]
+		if !ok {
+			continue
+		}
+		u.ProjectAssignedRole = m.Role
+		if strings.TrimSpace(m.Permissions) == "" {
+			continue
+		}
+		var perms []string
+		if json.Unmarshal([]byte(m.Permissions), &perms) == nil {
+			u.ProjectAccessPermissions = perms
+		}
+	}
+	return users, nil
 }
 
 // SearchFunctions searches for cloud functions in a project using SQL

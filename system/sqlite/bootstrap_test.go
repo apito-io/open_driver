@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"gitlab.com/apito.io/open_driver/system/bootstrapmeta"
+	"gitlab.com/apito.io/open_driver/system/sqlcommon"
 	"github.com/apito-io/engine/models"
 	"github.com/stretchr/testify/require"
 	"github.com/uptrace/bun"
@@ -46,6 +47,7 @@ func TestEnsureSystemBootstrap_SeedsAdminAndStarterGraph(t *testing.T) {
 	unscoped, err := drv.SearchSystemUsers(ctx, &models.CommonSystemParams{AllowUnscopedSystemUserList: true})
 	require.NoError(t, err)
 	require.NotEmpty(t, unscoped.Results)
+	require.Equal(t, int64(len(unscoped.Results)), unscoped.Total)
 
 	filtered, err := drv.SearchSystemUsers(ctx, &models.CommonSystemParams{Email: bootstrapmeta.AdminEmail})
 	require.NoError(t, err)
@@ -70,6 +72,10 @@ func TestEnsureSystemBootstrap_SeedsAdminAndStarterGraph(t *testing.T) {
 		Scan(ctx, &upCount)
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, upCount, 1)
+
+	listed, err := sqlcommon.ListUserProjects(ctx, db, []string{u.ID})
+	require.NoError(t, err)
+	require.NotEmpty(t, listed[u.ID])
 
 	var utCount int
 	err = db.NewSelect().ColumnExpr("count(*)").Table("user_teams").

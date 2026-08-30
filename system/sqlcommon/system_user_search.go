@@ -60,12 +60,17 @@ func SearchSystemUsers(ctx context.Context, db *bun.DB, param *models.CommonSyst
 	if param != nil {
 		limit, page = param.SystemUserSearchLimitPage(100, 200)
 	}
-	query = query.Limit(limit).Offset((page - 1) * limit)
 
+	total, err := query.Count(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	query = query.Limit(limit).Offset((page - 1) * limit)
 	if err := query.Scan(ctx); err != nil {
 		return nil, err
 	}
-	return &models.SearchResponse[models.SystemUser]{Results: users}, nil
+	return &models.SearchResponse[models.SystemUser]{Results: users, Total: int64(total)}, nil
 }
 
 // CountUserProjects returns project membership counts for the given user IDs.
@@ -90,6 +95,50 @@ func CountUserProjects(ctx context.Context, db *bun.DB, userIDs []string) (map[s
 	}
 	for _, r := range rows {
 		out[r.UserID] = r.N
+	}
+	return out, nil
+}
+
+// UserProjectRow is a user_projects row plus the project name.
+type UserProjectRow struct {
+	UserID    string
+	ProjectID string
+	Name      string
+	Role      string
+}
+
+// ListUserProjects returns project memberships for the given user IDs.
+func ListUserProjects(ctx context.Context, db *bun.DB, userIDs []string) (map[string][]UserProjectRow, error) {
+	out := make(map[string][]UserProjectRow, len(userIDs))
+	if db == nil || len(userIDs) == 0 {
+		return out, nil
+	}
+	var rows []struct {
+		UserID    string `bun:"user_id"`
+		ProjectID string `bun:"project_id"`
+		Name      string `bun:"name"`
+		Role      string `bun:"role"`
+	}
+	err := db.NewSelect().
+		TableExpr("user_projects AS up").
+		ColumnExpr("up.user_id").
+		ColumnExpr("up.project_id").
+		ColumnExpr("p.name").
+		ColumnExpr("up.role").
+		Join("JOIN projects AS p ON p.id = up.project_id").
+		Where("up.user_id IN (?)", bun.In(userIDs)).
+		OrderExpr("p.name ASC").
+		Scan(ctx, &rows)
+	if err != nil {
+		return out, err
+	}
+	for _, r := range rows {
+		out[r.UserID] = append(out[r.UserID], UserProjectRow{
+			UserID:    r.UserID,
+			ProjectID: r.ProjectID,
+			Name:      r.Name,
+			Role:      r.Role,
+		})
 	}
 	return out, nil
 }

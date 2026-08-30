@@ -1,9 +1,9 @@
 # open_driver — Current
 
-- **v1.0.19 tagged 2026-08-28** — `is_super_admin` column + repair +
-  unscoped search tighten. Engine pin **v2.4.41**.
-- **v1.0.18 (tagged 2026-08-14):** `SearchSystemUsers` honors
-  `where.email.eq`. Do **not** reuse this tag for super-admin.
+- **v1.0.20 tagged 2026-08-30** — SearchSystemUsers `Total` from COUNT,
+  `ListUserProjects`, SQLite `ListTeams` role hydrate. Engine pin
+  **v2.4.44**.
+- Prior: **v1.0.19** `is_super_admin` column + unscoped search tighten.
 
 ## Last Updated
-2026-08-28
+2026-08-30

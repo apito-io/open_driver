@@ -1,5 +1,14 @@
 # open_driver — AI Changelog
 
+## 2026-08-30 — COUNT total + ListUserProjects + ListTeams hydrate (v1.0.20)
+
+- **Changed:** `SearchSystemUsers` Total from COUNT; `ListUserProjects`;
+  SQLite ListTeams fills role/permissions from `user_projects`.
+- **Why:** Accounts page showed page size as total; Teams Role column
+  was blank after Arango migrate.
+- **Affected:** `system/sqlcommon/system_user_search.go`,
+  `system/sqlite/functions.go`. Tagged **v1.0.20**.
+
 ## 2026-08-22 — is_super_admin column + unscoped search (1.0.19 unreleased)
 
 - **Changed:** `EnsureSystemUserIsSuperAdminColumn`; bootstrap
