@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"time"
 
 	"gitlab.com/apito.io/open_driver/system/bootstrapmeta"
 	"github.com/apito-io/engine/models"
@@ -15,7 +14,8 @@ import (
 )
 
 func (d *Driver) ensureBootstrapAdmin(ctx context.Context) error {
-	u, err := d.GetSystemUserByEmail(ctx, bootstrapmeta.AdminEmail)
+	email := bootstrapmeta.BootstrapAdminEmail()
+	u, err := d.GetSystemUserByEmail(ctx, email)
 	if err != nil && !bootstrapmeta.IsUserLookupMiss(err) {
 		return fmt.Errorf("bootstrap: check admin user: %w", err)
 	}
@@ -23,7 +23,7 @@ func (d *Driver) ensureBootstrapAdmin(ctx context.Context) error {
 		return nil
 	}
 
-	hash, err := bootstrapmeta.HashDefaultAdminPassword()
+	hash, plain, err := bootstrapmeta.HashBootstrapAdminSecret()
 	if err != nil {
 		return fmt.Errorf("bootstrap: hash password: %w", err)
 	}
@@ -33,7 +33,7 @@ func (d *Driver) ensureBootstrapAdmin(ctx context.Context) error {
 	user := &models.SystemUser{
 		XKey:                      id,
 		ID:                        id,
-		Email:                     bootstrapmeta.AdminEmail,
+		Email:                     email,
 		Username:                  utility.NewID(),
 		FirstName:                 bootstrapmeta.AdminFirstName,
 		LastName:                  bootstrapmeta.AdminLastName,
@@ -50,7 +50,7 @@ func (d *Driver) ensureBootstrapAdmin(ctx context.Context) error {
 		return fmt.Errorf("bootstrap: create admin user: %w", err)
 	}
 
-	bootstrapmeta.LogDefaultAdminCredentials(bootstrapmeta.AdminEmail, bootstrapmeta.DefaultAdminPass)
+	bootstrapmeta.LogDefaultAdminCredentials(email, plain)
 	log.Println("system bootstrap: default admin user created (SQL)")
 	return nil
 }
@@ -68,58 +68,28 @@ func (d *Driver) ensureBootstrapOrgTeamProject(ctx context.Context) error {
 	})
 }
 
-// EnsureBootstrapOrgTeamProjectWithStarterCreate seeds default team/org and links the starter project.
-// fn is called only when the starter project row is missing (GetProject returns sql.ErrNoRows).
-// Exported for pro builds that replace OSS starter driver creation (e.g. Turso platform provisioning).
+// EnsureBootstrapOrgTeamProjectWithStarterCreate seeds the starter project only.
+// Named Team/Organization graph is retired; grants live on user_projects.
 func (d *Driver) EnsureBootstrapOrgTeamProjectWithStarterCreate(ctx context.Context, fn bootstrapmeta.CreateStarterProjectFn) error {
-	user, err := d.GetSystemUserByEmail(ctx, bootstrapmeta.AdminEmail)
+	user, err := d.GetSystemUserByEmail(ctx, bootstrapmeta.BootstrapAdminEmail())
 	if err != nil && !bootstrapmeta.IsUserLookupMiss(err) {
-		return fmt.Errorf("bootstrap: load admin for org seed: %w", err)
+		return fmt.Errorf("bootstrap: load admin for starter project: %w", err)
 	}
 	if user == nil {
 		return nil
 	}
-	if user.DefaultTeamID != "" && user.DefaultOrganizationID != "" {
-		return nil
-	}
 
-	team := &models.Team{
-		Name:        "Default Team",
-		Description: "Default team",
-		Users: []*models.SystemUser{
-			{ID: user.ID, Role: "admin", IsAdmin: true},
-		},
-	}
-	createdTeam, err := d.CreateTeam(ctx, team)
-	if err != nil {
-		return fmt.Errorf("bootstrap CreateTeam: %w", err)
-	}
-
-	org := &models.Organization{
-		Name:        "Default Organization",
-		Description: "Default organization",
-		UserID:      user.ID,
-		Teams:       []*models.Team{{ID: createdTeam.ID}},
-		Users: []*models.SystemUser{
-			{ID: user.ID, Role: "admin", IsAdmin: true},
-		},
-	}
-	createdOrg, err := d.CreateOrganization(ctx, org)
-	if err != nil {
-		return fmt.Errorf("bootstrap CreateOrganization: %w", err)
-	}
-
-	proj := &models.Project{
-		ID:          bootstrapmeta.StarterProjectID,
-		Name:        bootstrapmeta.StarterProjectName,
-		Description: "Starter project",
-	}
 	if _, err := d.GetProject(ctx, bootstrapmeta.StarterProjectID); err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("bootstrap GetProject: %w", err)
 		}
 		if fn == nil {
 			return fmt.Errorf("bootstrap: starter project create fn is nil")
+		}
+		proj := &models.Project{
+			ID:          bootstrapmeta.StarterProjectID,
+			Name:        bootstrapmeta.StarterProjectName,
+			Description: "Starter project",
 		}
 		if err := fn(ctx, user.ID, proj); err != nil {
 			return fmt.Errorf("bootstrap create starter project: %w", err)
@@ -132,43 +102,7 @@ func (d *Driver) EnsureBootstrapOrgTeamProjectWithStarterCreate(ctx context.Cont
 	if err := d.ensureProjectSettingsRow(ctx, bootstrapmeta.StarterProjectID); err != nil {
 		return err
 	}
-
-	if err := d.AssignTeamToOrganization(ctx, createdOrg.ID, user.ID, createdTeam.ID); err != nil && !sqlcommon.IsSQLUniqueViolation(err) {
-		return fmt.Errorf("bootstrap AssignTeamToOrganization: %w", err)
-	}
-	if err := d.AssignProjectToOrganization(ctx, createdOrg.ID, user.ID, bootstrapmeta.StarterProjectID); err != nil && !sqlcommon.IsSQLUniqueViolation(err) {
-		return fmt.Errorf("bootstrap AssignProjectToOrganization: %w", err)
-	}
-
-	now := time.Now().Format(time.RFC3339)
-	uo := &models.UserOrganization{
-		UserID:         user.ID,
-		OrganizationID: createdOrg.ID,
-		Role:           "admin",
-		JoinedAt:       now,
-	}
-	if _, err := d.ORM.NewInsert().Model(uo).Exec(ctx); err != nil && !sqlcommon.IsSQLUniqueViolation(err) {
-		return fmt.Errorf("bootstrap user_organizations: %w", err)
-	}
-
-	tp := &models.TeamProject{
-		TeamID:    createdTeam.ID,
-		ProjectID: bootstrapmeta.StarterProjectID,
-		LinkedAt:  now,
-	}
-	if _, err := d.ORM.NewInsert().Model(tp).Exec(ctx); err != nil && !sqlcommon.IsSQLUniqueViolation(err) {
-		return fmt.Errorf("bootstrap team_projects: %w", err)
-	}
-
-	user.DefaultTeamID = createdTeam.ID
-	user.DefaultOrganizationID = createdOrg.ID
-	user.DefaultTeam = &models.Team{ID: createdTeam.ID}
-	user.DefaultOrganization = &models.Organization{ID: createdOrg.ID}
-	user.Projects = []*models.Project{{ID: bootstrapmeta.StarterProjectID}}
-	if err := d.UpdateSystemUser(ctx, user, true); err != nil {
-		return fmt.Errorf("bootstrap UpdateSystemUser: %w", err)
-	}
-	log.Println("system bootstrap: default team/org/project linked (SQL)")
+	log.Println("system bootstrap: starter project linked (SQL)")
 	return nil
 }
 

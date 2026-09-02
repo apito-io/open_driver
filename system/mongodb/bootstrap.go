@@ -6,13 +6,11 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"time"
 
 	"gitlab.com/apito.io/open_driver/system/bootstrapmeta"
 	"gitlab.com/apito.io/open_driver/system/driverdefaults"
 	"github.com/apito-io/engine/models"
 	"github.com/apito-io/engine/utility"
-	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
@@ -72,7 +70,8 @@ func (m *SystemMongoDriver) ensureStarterProjectDriver(ctx context.Context) erro
 }
 
 func (m *SystemMongoDriver) ensureBootstrapAdmin(ctx context.Context) error {
-	u, err := m.GetSystemUserByEmail(ctx, bootstrapmeta.AdminEmail)
+	email := bootstrapmeta.BootstrapAdminEmail()
+	u, err := m.GetSystemUserByEmail(ctx, email)
 	if err != nil && !bootstrapmeta.IsUserLookupMiss(err) {
 		return fmt.Errorf("bootstrap: check admin user: %w", err)
 	}
@@ -80,7 +79,7 @@ func (m *SystemMongoDriver) ensureBootstrapAdmin(ctx context.Context) error {
 		return nil
 	}
 
-	hash, err := bootstrapmeta.HashDefaultAdminPassword()
+	hash, plain, err := bootstrapmeta.HashBootstrapAdminSecret()
 	if err != nil {
 		return fmt.Errorf("bootstrap: hash password: %w", err)
 	}
@@ -90,7 +89,7 @@ func (m *SystemMongoDriver) ensureBootstrapAdmin(ctx context.Context) error {
 	user := &models.SystemUser{
 		XKey:                      id,
 		ID:                        id,
-		Email:                     bootstrapmeta.AdminEmail,
+		Email:                     email,
 		Username:                  utility.NewID(),
 		FirstName:                 bootstrapmeta.AdminFirstName,
 		LastName:                  bootstrapmeta.AdminLastName,
@@ -107,94 +106,30 @@ func (m *SystemMongoDriver) ensureBootstrapAdmin(ctx context.Context) error {
 		return fmt.Errorf("bootstrap: create admin user: %w", err)
 	}
 
-	bootstrapmeta.LogDefaultAdminCredentials(bootstrapmeta.AdminEmail, bootstrapmeta.DefaultAdminPass)
+	bootstrapmeta.LogDefaultAdminCredentials(email, plain)
 	log.Println("system bootstrap: default admin user created (Mongo)")
 	return nil
 }
 
 func (m *SystemMongoDriver) ensureBootstrapOrgTeamProject(ctx context.Context) error {
-	user, err := m.GetSystemUserByEmail(ctx, bootstrapmeta.AdminEmail)
+	user, err := m.GetSystemUserByEmail(ctx, bootstrapmeta.BootstrapAdminEmail())
 	if err != nil && !bootstrapmeta.IsUserLookupMiss(err) {
-		return fmt.Errorf("bootstrap: load admin for org seed: %w", err)
+		return fmt.Errorf("bootstrap: load admin for starter project: %w", err)
 	}
 	if user == nil {
 		return nil
 	}
-	if user.DefaultTeam != nil && user.DefaultOrganization != nil {
-		return nil
-	}
 
-	team := &models.Team{
-		Name:        "Default Team",
-		Description: "Default team",
-		Users: []*models.SystemUser{
-			{ID: user.ID, Role: "admin", IsAdmin: true},
-		},
-	}
-	createdTeam, err := m.CreateTeam(ctx, team)
-	if err != nil {
-		return fmt.Errorf("bootstrap CreateTeam: %w", err)
-	}
-
-	org := &models.Organization{
-		Name:        "Default Organization",
-		Description: "Default organization",
-		Teams:       []*models.Team{{ID: createdTeam.ID}},
-		Users: []*models.SystemUser{
-			{ID: user.ID, Role: "admin", IsAdmin: true},
-		},
-	}
-	createdOrg, err := m.CreateOrganization(ctx, org)
-	if err != nil {
-		return fmt.Errorf("bootstrap CreateOrganization: %w", err)
-	}
-
-	proj := &models.Project{
-		ID:          bootstrapmeta.StarterProjectID,
-		Name:        bootstrapmeta.StarterProjectName,
-		Description: "Starter project",
-	}
 	if _, err := m.GetProject(ctx, bootstrapmeta.StarterProjectID); err != nil {
+		proj := &models.Project{
+			ID:          bootstrapmeta.StarterProjectID,
+			Name:        bootstrapmeta.StarterProjectName,
+			Description: "Starter project",
+		}
 		if _, err := m.CreateProject(ctx, user.ID, proj); err != nil {
-			return fmt.Errorf("bootstrap CreateProject: %w", err)
+			return fmt.Errorf("bootstrap create starter project: %w", err)
 		}
 	}
-
-	if err := m.AssignTeamToOrganization(ctx, createdOrg.ID, user.ID, createdTeam.ID); err != nil {
-		return fmt.Errorf("bootstrap AssignTeamToOrganization: %w", err)
-	}
-	if err := m.AssignProjectToOrganization(ctx, createdOrg.ID, user.ID, bootstrapmeta.StarterProjectID); err != nil {
-		return fmt.Errorf("bootstrap AssignProjectToOrganization: %w", err)
-	}
-
-	now := time.Now()
-	uoColl := m.Database.Collection("user_organizations")
-	_, err = uoColl.InsertOne(ctx, bson.M{
-		"user_id":         user.ID,
-		"organization_id": createdOrg.ID,
-		"role":            "admin",
-		"joined_at":       now,
-	})
-	if err != nil && !mongoIsDup(err) {
-		return fmt.Errorf("bootstrap user_organizations: %w", err)
-	}
-
-	tpColl := m.Database.Collection("team_projects")
-	_, err = tpColl.InsertOne(ctx, bson.M{
-		"team_id":    createdTeam.ID,
-		"project_id": bootstrapmeta.StarterProjectID,
-		"linked_at":  now,
-	})
-	if err != nil && !mongoIsDup(err) {
-		return fmt.Errorf("bootstrap team_projects: %w", err)
-	}
-
-	user.DefaultTeam = &models.Team{ID: createdTeam.ID}
-	user.DefaultOrganization = &models.Organization{ID: createdOrg.ID}
-	user.Projects = []*models.Project{{ID: bootstrapmeta.StarterProjectID}}
-	if err := m.UpdateSystemUser(ctx, user, true); err != nil {
-		return fmt.Errorf("bootstrap UpdateSystemUser: %w", err)
-	}
-	log.Println("system bootstrap: default team/org/project linked (Mongo)")
+	log.Println("system bootstrap: starter project linked (Mongo)")
 	return nil
 }

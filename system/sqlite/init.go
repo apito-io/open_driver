@@ -81,6 +81,9 @@ func (d *Driver) RunMigration(ctx context.Context) error {
 	if err := sqlcommon.EnsureProjectIconColumn(ctx, d.ORM); err != nil {
 		return err
 	}
+	if err := sqlcommon.EnsureUserProjectInviteColumns(ctx, d.ORM); err != nil {
+		return err
+	}
 	if err := sqlcommon.EnsureProjectPlanSeedOmissionsColumn(ctx, d.ORM); err != nil {
 		return err
 	}
@@ -91,6 +94,9 @@ func (d *Driver) RunMigration(ctx context.Context) error {
 		return err
 	}
 	if err := d.repairProjectSchemaIntegrity(ctx); err != nil {
+		return err
+	}
+	if err := sqlcommon.DropObsoleteTeamOrgTables(ctx, d.ORM); err != nil {
 		return err
 	}
 	return d.ensureSystemSecondaryIndexes(ctx)

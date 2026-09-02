@@ -171,14 +171,15 @@ func extractEmailEq(param *models.CommonSystemParams) string {
 }
 
 func (d *Driver) ensureBootstrapAdmin(ctx context.Context) error {
-	u, err := d.GetSystemUserByEmail(ctx, bootstrapmeta.AdminEmail)
+	email := bootstrapmeta.BootstrapAdminEmail()
+	u, err := d.GetSystemUserByEmail(ctx, email)
 	if err != nil && !bootstrapmeta.IsUserLookupMiss(err) {
 		return fmt.Errorf("bootstrap: check admin user: %w", err)
 	}
 	if u != nil {
 		return nil
 	}
-	hash, err := bootstrapmeta.HashDefaultAdminPassword()
+	hash, plain, err := bootstrapmeta.HashBootstrapAdminSecret()
 	if err != nil {
 		return fmt.Errorf("bootstrap: hash password: %w", err)
 	}
@@ -186,7 +187,7 @@ func (d *Driver) ensureBootstrapAdmin(ctx context.Context) error {
 	now := time.Now().UTC().Format(time.RFC3339)
 	user := &models.SystemUser{
 		ID:                        id,
-		Email:                     bootstrapmeta.AdminEmail,
+		Email:                     email,
 		Username:                  utility.NewID(),
 		FirstName:                 bootstrapmeta.AdminFirstName,
 		LastName:                  bootstrapmeta.AdminLastName,
@@ -201,6 +202,6 @@ func (d *Driver) ensureBootstrapAdmin(ctx context.Context) error {
 	if _, err := d.CreateSystemUser(ctx, user); err != nil {
 		return fmt.Errorf("bootstrap: create admin user: %w", err)
 	}
-	bootstrapmeta.LogDefaultAdminCredentials(bootstrapmeta.AdminEmail, bootstrapmeta.DefaultAdminPass)
+	bootstrapmeta.LogDefaultAdminCredentials(email, plain)
 	return nil
 }

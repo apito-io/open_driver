@@ -38,7 +38,6 @@ func TestEnsureSystemBootstrap_SeedsAdminAndStarterGraph(t *testing.T) {
 	require.NotNil(t, u)
 	require.Equal(t, bootstrapmeta.AdminEmail, u.Email)
 	require.True(t, u.IsSuperAdmin)
-	require.NotEmpty(t, u.DefaultTeamID)
 
 	empty, err := drv.SearchSystemUsers(ctx, &models.CommonSystemParams{})
 	require.NoError(t, err)
@@ -53,7 +52,6 @@ func TestEnsureSystemBootstrap_SeedsAdminAndStarterGraph(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, filtered.Results, 1)
 	require.True(t, filtered.Results[0].IsSuperAdmin)
-	require.NotEmpty(t, u.DefaultOrganizationID)
 
 	proj, err := drv.GetProject(ctx, bootstrapmeta.StarterProjectID)
 	require.NoError(t, err)
@@ -76,27 +74,6 @@ func TestEnsureSystemBootstrap_SeedsAdminAndStarterGraph(t *testing.T) {
 	listed, err := sqlcommon.ListUserProjects(ctx, db, []string{u.ID})
 	require.NoError(t, err)
 	require.NotEmpty(t, listed[u.ID])
-
-	var utCount int
-	err = db.NewSelect().ColumnExpr("count(*)").Table("user_teams").
-		Where("user_id = ?", u.ID).
-		Scan(ctx, &utCount)
-	require.NoError(t, err)
-	require.GreaterOrEqual(t, utCount, 1)
-
-	var uoCount int
-	err = db.NewSelect().ColumnExpr("count(*)").Table("user_organizations").
-		Where("user_id = ? AND role = ?", u.ID, "admin").
-		Scan(ctx, &uoCount)
-	require.NoError(t, err)
-	require.GreaterOrEqual(t, uoCount, 1)
-
-	var tpCount int
-	err = db.NewSelect().ColumnExpr("count(*)").Table("team_projects").
-		Where("project_id = ?", bootstrapmeta.StarterProjectID).
-		Scan(ctx, &tpCount)
-	require.NoError(t, err)
-	require.GreaterOrEqual(t, tpCount, 1)
 
 	require.NoError(t, drv.EnsureSystemBootstrap(ctx))
 }

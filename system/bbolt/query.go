@@ -206,7 +206,11 @@ func (d *ProBBoltSystemDriver) AddATeamMemberToProject(ctx context.Context, req 
 
 	// Check if member already exists
 	err := d.CheckTeamMemberExists(ctx, req.ProjectID, req.UserID)
-	if err != nil {
+	if err != nil && err.Error() == "this member is already added to this project" {
+		if remErr := d.RemoveATeamMemberFromProject(ctx, req.ProjectID, req.UserID); remErr != nil {
+			return remErr
+		}
+	} else if err != nil {
 		return err
 	}
 

@@ -8,6 +8,7 @@ import (
 	"github.com/apito-io/engine/models"
 	"github.com/apito-io/engine/utility"
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 // GetProjects retrieves multiple projects by their IDs using MongoDB
@@ -35,26 +36,22 @@ func (m *SystemMongoDriver) GetProjects(ctx context.Context, keys []string) ([]*
 
 // AddATeamMemberToProject adds a team member to a project using MongoDB
 func (m *SystemMongoDriver) AddATeamMemberToProject(ctx context.Context, req *models.TeamMemberAddRequest) error {
-	// Create user-project relation with role
-	userProjectsCollection := m.Database.Collection("user_projects")
-	_, err := userProjectsCollection.InsertOne(ctx, map[string]interface{}{
-		"user_id":     req.UserID,
-		"project_id":  req.ProjectID,
-		"role":        req.Role,
-		"permissions": req.Permissions,
-	})
-
-	if err != nil {
-		return err
+	if req == nil {
+		return fmt.Errorf("team member request required")
 	}
-
-	// Also add to project_teams collection
-	projectTeamsCollection := m.Database.Collection("project_teams")
-	_, err = projectTeamsCollection.InsertOne(ctx, map[string]interface{}{
-		"user_id":    req.UserID,
-		"project_id": req.ProjectID,
-	})
-
+	role := models.NormalizeMembershipRole(req.Role, false)
+	perms := models.MembershipPermissions(req.Permissions, false)
+	userProjectsCollection := m.Database.Collection("user_projects")
+	_, err := userProjectsCollection.UpdateOne(ctx,
+		bson.M{"user_id": req.UserID, "project_id": req.ProjectID},
+		bson.M{"$set": bson.M{
+			"user_id":     req.UserID,
+			"project_id":  req.ProjectID,
+			"role":        role,
+			"permissions": perms,
+		}},
+		options.UpdateOne().SetUpsert(true),
+	)
 	return err
 }
 

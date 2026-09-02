@@ -10,9 +10,8 @@ import (
 
 const superAdminEmailsEnv = "SUPER_ADMIN_EMAILS"
 
-// SuperAdminEmails returns the platform-operator email list. Default is AdminEmail
-// (admin@apito.io). SUPER_ADMIN_EMAILS is a comma-separated override; AdminEmail is
-// always included.
+// SuperAdminEmails returns the platform-operator email list. Default is
+// BootstrapAdminEmail(). SUPER_ADMIN_EMAILS is a comma-separated extra list.
 func SuperAdminEmails() []string {
 	seen := map[string]struct{}{}
 	out := make([]string, 0, 4)
@@ -27,14 +26,14 @@ func SuperAdminEmails() []string {
 		seen[email] = struct{}{}
 		out = append(out, email)
 	}
-	add(AdminEmail)
+	add(BootstrapAdminEmail())
 	for _, part := range strings.Split(os.Getenv(superAdminEmailsEnv), ",") {
 		add(part)
 	}
 	return out
 }
 
-// NewBootstrapAdminUser builds the first-run admin@apito.io row with the platform flag.
+// NewBootstrapAdminUser builds the first-run operator row with the platform flag.
 func NewBootstrapAdminUser(id, username, now, passwordHash string) *models.SystemUser {
 	if username == "" {
 		username = id
@@ -42,7 +41,7 @@ func NewBootstrapAdminUser(id, username, now, passwordHash string) *models.Syste
 	return &models.SystemUser{
 		XKey:                      id,
 		ID:                        id,
-		Email:                     AdminEmail,
+		Email:                     BootstrapAdminEmail(),
 		Username:                  username,
 		FirstName:                 AdminFirstName,
 		LastName:                  AdminLastName,

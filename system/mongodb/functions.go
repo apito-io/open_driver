@@ -232,52 +232,34 @@ func (m *SystemMongoDriver) AddSystemUserMetaInfo(ctx context.Context, doc *type
 	return doc, err
 }
 
-// AddTeamMetaInfo adds metadata to team members using MongoDB
+// AddTeamMetaInfo is retired; membership lives on user_projects.
 func (m *SystemMongoDriver) AddTeamMetaInfo(ctx context.Context, docs []*models.SystemUser) ([]*models.SystemUser, error) {
-	collection := m.Database.Collection("team_metadata")
-
-	var documents []interface{}
-	for _, doc := range docs {
-		metadata := map[string]interface{}{
-			"_id":  doc.ID,
-			"data": doc,
-		}
-		documents = append(documents, metadata)
-	}
-
-	_, err := collection.InsertMany(ctx, documents)
-	return docs, err
+	return docs, nil
 }
 
 // RemoveATeamMemberFromProject removes a team member from a project using MongoDB
 func (m *SystemMongoDriver) RemoveATeamMemberFromProject(ctx context.Context, projectId string, memberID string) error {
-	collection := m.Database.Collection("project_teams")
-
+	collection := m.Database.Collection("user_projects")
 	_, err := collection.DeleteMany(ctx, bson.M{
 		"project_id": projectId,
 		"user_id":    memberID,
 	})
-
 	return err
 }
 
 // CheckTeamMemberExists checks if a team member exists in a project using MongoDB
 func (m *SystemMongoDriver) CheckTeamMemberExists(ctx context.Context, projectId string, memberID string) error {
-	collection := m.Database.Collection("project_teams")
-
+	collection := m.Database.Collection("user_projects")
 	count, err := collection.CountDocuments(ctx, bson.M{
 		"project_id": projectId,
 		"user_id":    memberID,
 	})
-
 	if err != nil {
 		return err
 	}
-
 	if count == 0 {
 		return fmt.Errorf("team member not found")
 	}
-
 	return nil
 }
 

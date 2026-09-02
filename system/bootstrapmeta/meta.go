@@ -48,12 +48,12 @@ func LogDefaultAdminCredentials(email, plainPassword string) {
 
 	log.Println(border)
 	log.Println(empty)
-	log.Printf("║                        DEFAULT ADMIN CREDENTIALS                     ║")
+	log.Printf("║                        BOOTSTRAP ADMIN CREDENTIALS                   ║")
 	log.Println(empty)
 	log.Printf("║  Email:    %-54s ║", email)
 	log.Printf("║  Password: %-54s ║", plainPassword)
 	log.Println(empty)
-	log.Printf("║  Please login with these credentials and change the password!       ║")
+	log.Printf("║  Copy once (like an API key). Change after first login.              ║")
 	log.Println(empty)
 	log.Println(footer)
 }

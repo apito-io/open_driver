@@ -130,6 +130,7 @@ func (d *Driver) GetProjectWithRolesAndPermission(ctx context.Context, userId st
 		ColumnExpr("permissions").
 		TableExpr("user_projects").
 		Where("user_id = ?", userId).
+		Where(sqlcommon.SQLUserProjectAccessGranted).
 		Scan(ctx, &jrows)
 	if err != nil {
 		return nil, err
@@ -202,17 +203,9 @@ func (d *Driver) ListAllUsers(ctx context.Context) ([]*models.SystemUser, error)
 	return users, err
 }
 
-// ListTeams lists team members for a project using SQL
+// ListTeams lists console operators for a project from user_projects.
 func (d *Driver) ListTeams(ctx context.Context, projectId string) ([]*models.SystemUser, error) {
-	var users []*models.SystemUser
-
-	err := d.ORM.NewSelect().
-		Model(&users).
-		Join("JOIN project_teams pt ON pt.user_id = system_user.id").
-		Where("pt.project_id = ?", projectId).
-		Scan(ctx)
-
-	return users, err
+	return sqlcommon.ListProjectMembers(ctx, d.ORM, projectId)
 }
 
 // SearchFunctions searches for cloud functions in a project using SQL
@@ -299,45 +292,21 @@ func (d *Driver) AddSystemUserMetaInfo(ctx context.Context, doc *types.DefaultDo
 	return doc, err
 }
 
-// AddTeamMetaInfo adds metadata to team members using SQL
+// AddTeamMetaInfo is retired; membership lives on user_projects.
 func (d *Driver) AddTeamMetaInfo(ctx context.Context, docs []*models.SystemUser) ([]*models.SystemUser, error) {
-	for _, doc := range docs {
-		jsonData, err := json.Marshal(doc)
-		if err != nil {
-			return nil, err
-		}
-
-		_, err = d.ORM.NewInsert().
-			Model(&map[string]interface{}{
-				"id":   doc.ID,
-				"data": string(jsonData),
-			}).
-			TableExpr("team_metadata").
-			Exec(ctx)
-
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return docs, nil
+	return sqlcommon.RetiredAddTeamMetaInfo(docs)
 }
 
 // RemoveATeamMemberFromProject removes a team member from a project using SQL
 func (d *Driver) RemoveATeamMemberFromProject(ctx context.Context, projectId string, memberID string) error {
-	_, err := d.ORM.NewDelete().
-		Model((*models.TeamProject)(nil)).
-		Where("project_id = ? AND team_id IN (SELECT id FROM teams WHERE user_id = ?)", projectId, memberID).
-		Exec(ctx)
-
-	return err
+	return sqlcommon.DeleteUserProjectGrant(ctx, d.ORM, projectId, memberID)
 }
 
 // CheckTeamMemberExists checks if a team member exists in a project using SQL
 func (d *Driver) CheckTeamMemberExists(ctx context.Context, projectId string, memberID string) error {
 	exists, err := d.ORM.NewSelect().
-		Model((*models.TeamProject)(nil)).
-		Where("project_id = ? AND team_id IN (SELECT id FROM teams WHERE user_id = ?)", projectId, memberID).
+		Model((*models.UserProject)(nil)).
+		Where("project_id = ? AND user_id = ?", projectId, memberID).
 		Exists(ctx)
 
 	if err != nil {
@@ -814,30 +783,6 @@ func (d *Driver) DeleteProjectFromSystem(ctx context.Context, projectId string) 
 
 		_, err := tx.NewDelete().
 			Model((*models.UserProject)(nil)).
-			Where("project_id = ?", projectId).
-			Exec(ctx)
-		if err != nil {
-			return err
-		}
-
-		_, err = tx.NewDelete().
-			Model((*sqlcommon.ProjectTeamRow)(nil)).
-			Where("project_id = ?", projectId).
-			Exec(ctx)
-		if err != nil {
-			return err
-		}
-
-		_, err = tx.NewDelete().
-			Model((*models.TeamProject)(nil)).
-			Where("project_id = ?", projectId).
-			Exec(ctx)
-		if err != nil {
-			return err
-		}
-
-		_, err = tx.NewDelete().
-			Model((*sqlcommon.OrganizationProjectRow)(nil)).
 			Where("project_id = ?", projectId).
 			Exec(ctx)
 		if err != nil {

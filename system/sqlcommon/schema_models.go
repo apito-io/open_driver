@@ -21,6 +21,8 @@ func RegisterSystemSQLSchemaModels(orm *bun.DB) {
 }
 
 // SystemSQLSchemaModels returns the full ordered list of tables for RunMigration.
+// Team/Organization and their join tables are still created so bun can walk
+// m2m tags on SystemUser/Project; DropObsoleteTeamOrgTables removes them after.
 func SystemSQLSchemaModels() []interface{} {
 	return []interface{}{
 		(*models.SystemUser)(nil),

@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 
+	"gitlab.com/apito.io/open_driver/system/sqlcommon"
 	"github.com/apito-io/engine/models"
 	"github.com/apito-io/engine/utility"
 )
@@ -31,15 +32,7 @@ func (d *Driver) SearchResource(ctx context.Context, param *models.CommonSystemP
 
 // FindOrganizationAdmin implements interfaces.ApitoSystemDB.
 func (d *Driver) FindOrganizationAdmin(ctx context.Context, orgId string) (*models.SystemUser, error) {
-	user := &models.SystemUser{}
-	err := d.ORM.NewSelect().
-		Model(user).
-		Join("JOIN user_organizations uo ON uo.user_id = system_user.id").
-		Where("uo.organization_id = ? AND uo.role = ?", orgId, "admin").
-		Limit(1).
-		Scan(ctx)
-
-	return user, err
+	return sqlcommon.RetiredFindOrganizationAdmin()
 }
 
 // SaveAuditLog implements interfaces.ApitoSystemDB.
@@ -80,19 +73,5 @@ func (d *Driver) SearchAuditLogs(ctx context.Context, param *models.CommonSystem
 
 // GetOrganizations implements interfaces.ApitoSystemDB.
 func (d *Driver) GetOrganizations(ctx context.Context, userId string) (*models.SearchResponse[models.Organization], error) {
-	var organizations []*models.Organization
-
-	err := d.ORM.NewSelect().
-		Model(&organizations).
-		Join("JOIN user_organizations uo ON uo.organization_id = organization.id").
-		Where("uo.user_id = ?", userId).
-		Scan(ctx)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &models.SearchResponse[models.Organization]{
-		Results: organizations,
-	}, nil
+	return sqlcommon.RetiredGetOrganizations()
 }

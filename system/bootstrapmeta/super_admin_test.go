@@ -45,5 +45,5 @@ func TestNewBootstrapAdminUser_IsSuperAdmin(t *testing.T) {
 	u := NewBootstrapAdminUser("id", "user", "now", "hash")
 	require.True(t, u.IsSuperAdmin)
 	require.True(t, u.IsActive)
-	require.Equal(t, AdminEmail, u.Email)
+	require.Equal(t, BootstrapAdminEmail(), u.Email)
 }

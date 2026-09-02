@@ -36,8 +36,8 @@ func TestEnsureSystemBootstrap_SeedsAdminAndStarterGraph(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, u)
 	require.Equal(t, bootstrapmeta.AdminEmail, u.Email)
-	require.NotEmpty(t, u.DefaultTeamID)
-	require.NotEmpty(t, u.DefaultOrganizationID)
+	require.Empty(t, u.DefaultTeamID)
+	require.Empty(t, u.DefaultOrganizationID)
 
 	proj, err := drv.GetProject(ctx, bootstrapmeta.StarterProjectID)
 	require.NoError(t, err)
@@ -56,27 +56,6 @@ func TestEnsureSystemBootstrap_SeedsAdminAndStarterGraph(t *testing.T) {
 		Scan(ctx, &upCount)
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, upCount, 1)
-
-	var utCount int
-	err = db.NewSelect().ColumnExpr("count(*)").Table("user_teams").
-		Where("user_id = ?", u.ID).
-		Scan(ctx, &utCount)
-	require.NoError(t, err)
-	require.GreaterOrEqual(t, utCount, 1)
-
-	var uoCount int
-	err = db.NewSelect().ColumnExpr("count(*)").Table("user_organizations").
-		Where("user_id = ? AND role = ?", u.ID, "admin").
-		Scan(ctx, &uoCount)
-	require.NoError(t, err)
-	require.GreaterOrEqual(t, uoCount, 1)
-
-	var tpCount int
-	err = db.NewSelect().ColumnExpr("count(*)").Table("team_projects").
-		Where("project_id = ?", bootstrapmeta.StarterProjectID).
-		Scan(ctx, &tpCount)
-	require.NoError(t, err)
-	require.GreaterOrEqual(t, tpCount, 1)
 
 	require.NoError(t, drv.EnsureSystemBootstrap(ctx))
 }

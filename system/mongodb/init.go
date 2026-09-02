@@ -169,30 +169,34 @@ func (m *SystemMongoDriver) GetTeams(ctx context.Context, userId string) ([]*mod
 	return teams, nil
 }
 
-// GetTeamsMembers retrieves team members for a project using MongoDB
+// GetTeamsMembers retrieves console operators for a project using MongoDB
 func (m *SystemMongoDriver) GetTeamsMembers(ctx context.Context, projectId string) ([]*models.SystemUser, error) {
-	projectTeamsCollection := m.Database.Collection("project_teams")
-
-	// Find user IDs for the project
-	cursor, err := projectTeamsCollection.Find(ctx, bson.M{"project_id": projectId})
+	userProjectsCollection := m.Database.Collection("user_projects")
+	cursor, err := userProjectsCollection.Find(ctx, bson.M{"project_id": projectId})
 	if err != nil {
 		return nil, err
 	}
 
-	var projectTeams []map[string]interface{}
-	if err = cursor.All(ctx, &projectTeams); err != nil {
+	type membership struct {
+		UserID      string      `bson:"user_id"`
+		Role        string      `bson:"role"`
+		Permissions interface{} `bson:"permissions"`
+	}
+	var rows []membership
+	if err = cursor.All(ctx, &rows); err != nil {
 		return nil, err
 	}
-	cursor.Close(ctx)
 
 	var userIds []string
-	for _, pt := range projectTeams {
-		if userId, ok := pt["user_id"].(string); ok {
-			userIds = append(userIds, userId)
-		}
+	byID := map[string]membership{}
+	for _, row := range rows {
+		userIds = append(userIds, row.UserID)
+		byID[row.UserID] = row
+	}
+	if len(userIds) == 0 {
+		return []*models.SystemUser{}, nil
 	}
 
-	// Get users
 	usersCollection := m.Database.Collection("users")
 	userCursor, err := usersCollection.Find(ctx, bson.M{"_id": bson.M{"$in": userIds}})
 	if err != nil {
@@ -205,6 +209,20 @@ func (m *SystemMongoDriver) GetTeamsMembers(ctx context.Context, projectId strin
 		var user models.SystemUser
 		if err := userCursor.Decode(&user); err != nil {
 			return nil, err
+		}
+		if mrow, ok := byID[user.ID]; ok {
+			user.ProjectAssignedRole = mrow.Role
+			switch perms := mrow.Permissions.(type) {
+			case []string:
+				user.ProjectAccessPermissions = perms
+			case bson.A:
+				for _, p := range perms {
+					s, _ := p.(string)
+					if s != "" {
+						user.ProjectAccessPermissions = append(user.ProjectAccessPermissions, s)
+					}
+				}
+			}
 		}
 		users = append(users, &user)
 	}

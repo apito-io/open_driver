@@ -1,5 +1,25 @@
 # open_driver changelog
 
+## [Unreleased]
+
+## [1.0.22] — 2026-09-02
+
+### Teams
+
+- `user_projects` is the only membership store. `UpsertUserProjectGrant` / `DeleteUserProjectGrant` / `ListProjectMembers`.
+- SQL `RemoveATeamMemberFromProject` deletes `user_projects` (it used to hit the unused team graph).
+- SQL bootstrap seeds the starter project only. Named Team/Organization tables are dropped in `RunMigration` (`DropObsoleteTeamOrgTables`).
+- Retired Team/Org driver methods no-op so dropped tables are not queried.
+- Invite columns on `user_projects`: `invite_status`, `invited_at`, `accepted_at`, `invite_expires_at`, `invite_token`.
+
+### System bootstrap
+
+- **`BOOTSTRAP_ADMIN_EMAIL`** (default `admin@apito.io`) is the first-run
+  operator. **`BOOTSTRAP_ADMIN_PASSWORD`** overrides the secret;
+  **`BOOTSTRAP_ADMIN_RANDOM_PASSWORD=true`** generates a one-shot value
+  and prints it in the bootstrap banner (copy like an API key). Local
+  tests keep `#ApitoRocks#` when those env vars are unset.
+
 ## [1.0.21] — 2026-09-02
 
 ### Tenants

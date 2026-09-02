@@ -1,14 +1,12 @@
 package sqlite
 
 import (
-	"gitlab.com/apito.io/open_driver/system/sqlcommon"
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
+	"gitlab.com/apito.io/open_driver/system/sqlcommon"
 	"github.com/apito-io/engine/models"
-	"github.com/apito-io/engine/utility"
 	"github.com/uptrace/bun"
 )
 
@@ -29,31 +27,7 @@ func (d *Driver) GetProjects(ctx context.Context, keys []string) ([]*models.Proj
 
 // AddATeamMemberToProject adds a team member to a project using SQL
 func (d *Driver) AddATeamMemberToProject(ctx context.Context, req *models.TeamMemberAddRequest) error {
-	// Create user-project relation with role
-	_, err := d.ORM.NewInsert().
-		Model(&map[string]interface{}{
-			"user_id":     req.UserID,
-			"project_id":  req.ProjectID,
-			"role":        req.Role,
-			"permissions": req.Permissions,
-		}).
-		TableExpr("user_projects").
-		Exec(ctx)
-
-	if err != nil {
-		return err
-	}
-
-	// Also add to project_teams table
-	_, err = d.ORM.NewInsert().
-		Model(&map[string]interface{}{
-			"user_id":    req.UserID,
-			"project_id": req.ProjectID,
-		}).
-		TableExpr("project_teams").
-		Exec(ctx)
-
-	return err
+	return sqlcommon.UpsertUserProjectGrant(ctx, d.ORM, req)
 }
 
 // GetSystemUsers retrieves multiple system users by their IDs using SQL
@@ -67,138 +41,49 @@ func (d *Driver) GetSystemUsers(ctx context.Context, keys []string) ([]*models.S
 	return users, err
 }
 
-// FindUserOrganizations retrieves all organizations for a given user using SQL
+// FindUserOrganizations is retired; named orgs are gone.
 func (d *Driver) FindUserOrganizations(ctx context.Context, userId string) ([]*models.Organization, error) {
-	var organizations []*models.Organization
-
-	err := d.ORM.NewSelect().
-		Model(&organizations).
-		Join("JOIN user_organizations uo ON uo.organization_id = organization.id").
-		Where("uo.user_id = ?", userId).
-		Scan(ctx)
-
-	return organizations, err
+	return sqlcommon.RetiredFindUserOrganizations()
 }
 
-// CreateOrganization creates a new organization using SQL
+// CreateOrganization is retired; it does not persist.
 func (d *Driver) CreateOrganization(ctx context.Context, org *models.Organization) (*models.Organization, error) {
-	if org.ID == "" {
-		org.ID = utility.NewID()
-	}
-
-	_, err := d.ORM.NewInsert().
-		Model(org).
-		Exec(ctx)
-
-	return org, err
+	return sqlcommon.RetiredCreateOrganization(org)
 }
 
-// AssignTeamToOrganization assigns a team to an organization using SQL
+// AssignTeamToOrganization is retired.
 func (d *Driver) AssignTeamToOrganization(ctx context.Context, orgId, userId, teamId string) error {
-	_, err := d.ORM.NewInsert().
-		Model(&map[string]interface{}{
-			"organization_id": orgId,
-			"team_id":         teamId,
-			"assigned_by":     userId,
-			"assigned_at":     time.Now(),
-		}).
-		TableExpr("organization_teams").
-		Exec(ctx)
-
-	return err
+	return sqlcommon.RetiredNoop()
 }
 
-// RemoveATeamFromOrganization removes a team from an organization using SQL
+// RemoveATeamFromOrganization is retired.
 func (d *Driver) RemoveATeamFromOrganization(ctx context.Context, orgId, userId, teamId string) error {
-	_, err := d.ORM.NewDelete().
-		Model((*models.OrganizationTeam)(nil)).
-		Where("organization_id = ? AND team_id = ?", orgId, teamId).
-		Exec(ctx)
-
-	return err
+	return sqlcommon.RetiredNoop()
 }
 
-// AssignProjectToOrganization assigns a project to an organization using SQL
+// AssignProjectToOrganization is retired.
 func (d *Driver) AssignProjectToOrganization(ctx context.Context, orgId, userId, projectId string) error {
-	_, err := d.ORM.NewInsert().
-		Model(&map[string]interface{}{
-			"organization_id": orgId,
-			"project_id":      projectId,
-			"assigned_by":     userId,
-			"assigned_at":     time.Now(),
-		}).
-		TableExpr("organization_projects").
-		Exec(ctx)
-
-	return err
+	return sqlcommon.RetiredNoop()
 }
 
-// RemoveProjectFromOrganization removes a project from an organization using SQL
+// RemoveProjectFromOrganization is retired.
 func (d *Driver) RemoveProjectFromOrganization(ctx context.Context, orgId, userId, projectId string) error {
-	_, err := d.ORM.NewDelete().
-		Model((*sqlcommon.OrganizationProjectRow)(nil)).
-		Where("organization_id = ? AND project_id = ?", orgId, projectId).
-		Exec(ctx)
-
-	return err
+	return sqlcommon.RetiredNoop()
 }
 
-// GetProjectTeams retrieves team information for a project using SQL
+// GetProjectTeams is retired.
 func (d *Driver) GetProjectTeams(ctx context.Context, projectId string) (*models.Team, error) {
-	team := &models.Team{}
-	err := d.ORM.NewSelect().
-		Model(team).
-		Join("JOIN team_projects tp ON tp.team_id = team.id").
-		Where("tp.project_id = ?", projectId).
-		Limit(1).
-		Scan(ctx)
-
-	return team, err
+	return sqlcommon.RetiredGetProjectTeams()
 }
 
-// FindUserTeams retrieves all teams for a given user using SQL
+// FindUserTeams is retired.
 func (d *Driver) FindUserTeams(ctx context.Context, userId string) ([]*models.Team, error) {
-	var teams []*models.Team
-
-	err := d.ORM.NewSelect().
-		Model(&teams).
-		Join("JOIN user_teams ut ON ut.team_id = team.id").
-		Where("ut.user_id = ?", userId).
-		Scan(ctx)
-
-	return teams, err
+	return []*models.Team{}, nil
 }
 
-// CreateTeam creates a new team using SQL
+// CreateTeam is retired; it does not persist.
 func (d *Driver) CreateTeam(ctx context.Context, team *models.Team) (*models.Team, error) {
-	if team.ID == "" {
-		team.ID = utility.NewID()
-	}
-
-	_, err := d.ORM.NewInsert().
-		Model(team).
-		Exec(ctx)
-
-	if err != nil {
-		return nil, err
-	}
-
-	// Create user-team relations for each user
-	for _, user := range team.Users {
-		_, err = d.ORM.NewInsert().
-			Model(&map[string]interface{}{
-				"user_id": user.ID,
-				"team_id": team.ID,
-			}).
-			TableExpr("user_teams").
-			Exec(ctx)
-
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return team, nil
+	return sqlcommon.RetiredCreateTeam(team)
 }
 
 // FindUserProjects retrieves all projects for a given user using SQL
@@ -210,6 +95,7 @@ func (d *Driver) FindUserProjects(ctx context.Context, userId string) ([]*models
 		Relation("Driver").
 		Join("JOIN user_projects up ON up.project_id = project.id").
 		Where("up.user_id = ?", userId).
+		Where(sqlcommon.SQLUserProjectAccessGrantedAliased).
 		Scan(ctx)
 
 	return projects, err
@@ -258,6 +144,11 @@ func (d *Driver) CheckProjectWithRoles(ctx context.Context, userId, projectId st
 
 	role, _ := relation["role"].(string)
 	permissions, _ := relation["permissions"].(string)
+	inviteStatus := sqlcommon.MapString(relation, "invite_status")
+	inviteExpires := sqlcommon.MapString(relation, "invite_expires_at")
+	if err := models.ErrIfInviteBlocksAccess(inviteStatus, inviteExpires); err != nil {
+		return nil, err
+	}
 
 	var permList []string
 	if permissions != "" {
@@ -265,9 +156,11 @@ func (d *Driver) CheckProjectWithRoles(ctx context.Context, userId, projectId st
 	}
 
 	return &models.ProjectWithRoles{
-		User:        user,
-		Project:     project,
-		Role:        role,
-		Permissions: permList,
+		User:            user,
+		Project:         project,
+		Role:            role,
+		Permissions:     permList,
+		InviteStatus:    inviteStatus,
+		InviteExpiresAt: inviteExpires,
 	}, nil
 }
