@@ -1,5 +1,11 @@
 # open_driver — AI Changelog
 
+## 2026-09-02 — D1 partner_id ALTER (v1.0.21)
+
+- **Changed:** Idempotent `ALTER TABLE pro_tenants ADD COLUMN partner_id`.
+- **Why:** Cloudflare D1 tenant catalogs need the same FK SQL/SQLite already persist.
+- **Affected:** `system/cloudflared1/system_methods.go`. Tagged **v1.0.21**.
+
 ## 2026-08-30 — COUNT total + ListUserProjects + ListTeams hydrate (v1.0.20)
 
 - **Changed:** `SearchSystemUsers` Total from COUNT; `ListUserProjects`;

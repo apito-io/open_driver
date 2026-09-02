@@ -192,6 +192,7 @@ func (d *Driver) migrateProTenantsColumns(ctx context.Context) error {
 		`ALTER TABLE pro_tenants ADD COLUMN created_at TEXT`,
 		`ALTER TABLE pro_tenants ADD COLUMN updated_at TEXT`,
 		`ALTER TABLE pro_tenants ADD COLUMN data TEXT`,
+		`ALTER TABLE pro_tenants ADD COLUMN partner_id TEXT`,
 	}
 	for _, sql := range alters {
 		_, _ = d.DB.Exec(ctx, sql)

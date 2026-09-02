@@ -1,5 +1,11 @@
 # open_driver changelog
 
+## [1.0.21] — 2026-09-02
+
+### Tenants
+
+- D1 `pro_tenants.partner_id` ALTER (idempotent) so Cloudflare D1 catalogs store workspace partner FKs.
+
 ## [1.0.20] — 2026-08-30
 
 ### System users
