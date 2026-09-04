@@ -1,5 +1,13 @@
 # open_driver — AI Changelog
 
+## 2026-09-03 — invites + membership store (v1.0.22)
+
+- **Changed:** `user_projects` invite columns; membership store + retired
+  Team/Org no-ops; `BOOTSTRAP_ADMIN_EMAIL` / random first-run password.
+- **Why:** Pending invites need token/expiry; named Team graph dropped.
+- **Affected:** `system/sqlcommon/user_project_invite*.go`, bootstrapmeta.
+  Tagged **v1.0.22**. Engine **v2.4.49**.
+
 ## 2026-09-02 — D1 partner_id ALTER (v1.0.21)
 
 - **Changed:** Idempotent `ALTER TABLE pro_tenants ADD COLUMN partner_id`.

@@ -10,6 +10,7 @@ import (
 	"gitlab.com/apito.io/open_driver/system/bootstrapmeta"
 	"gitlab.com/apito.io/open_driver/system/sqlcommon"
 	"github.com/apito-io/engine/models"
+	"github.com/apito-io/types/protobuff"
 	"github.com/stretchr/testify/require"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/sqlitedialect"
@@ -136,6 +137,43 @@ func TestUpdateProject_persistsModelTypes(t *testing.T) {
 	require.Len(t, reloaded.Schema.Models, 1)
 	require.Equal(t, "author", reloaded.Schema.Models[0].Name)
 	require.Equal(t, pid, reloaded.Schema.Models[0].ProjectID)
+}
+
+func TestUpdateProject_persistsPlugins(t *testing.T) {
+	sqldb, err := sql.Open(sqliteshim.ShimName, "file::memory:?cache=shared")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sqldb.Close() })
+	db := bun.NewDB(sqldb, sqlitedialect.New())
+	drv := testSystemDriver(db, &models.Config{
+		SystemDatabaseEngine: "coredb",
+	}, nil)
+	ctx := context.Background()
+	require.NoError(t, drv.RunMigration(ctx))
+	require.NoError(t, ensureProjectSettingsSQLColumns(ctx, db))
+	require.NoError(t, drv.EnsureSystemBootstrap(ctx))
+
+	pid := bootstrapmeta.StarterProjectID
+	proj, err := drv.GetProject(ctx, pid)
+	require.NoError(t, err)
+	proj.Plugins = []*models.SavedPluginDetails{
+		{
+			ProjectID: pid,
+			ID:        "hc-cloudinary-plugin",
+			Enable:    true,
+			EnvVars: []*protobuff.EnvVariable{
+				{Key: "CLOUDINARY_CLOUD_NAME", Value: "demo"},
+			},
+		},
+	}
+	require.NoError(t, drv.UpdateProject(ctx, proj, true))
+
+	reloaded, err := drv.GetProject(ctx, pid)
+	require.NoError(t, err)
+	require.Len(t, reloaded.Plugins, 1)
+	require.Equal(t, "hc-cloudinary-plugin", reloaded.Plugins[0].ID)
+	require.True(t, reloaded.Plugins[0].Enable)
+	require.Equal(t, "CLOUDINARY_CLOUD_NAME", reloaded.Plugins[0].EnvVars[0].Key)
+	require.Equal(t, "demo", reloaded.Plugins[0].EnvVars[0].Value)
 }
 
 func TestUpdateProject_removesOrphanModelTypes(t *testing.T) {

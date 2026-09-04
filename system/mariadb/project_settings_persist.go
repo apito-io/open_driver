@@ -17,6 +17,7 @@ const (
 	colAuthenticationSettings = "authentication_settings"
 	colStorageSettings          = "storage_settings"
 	colLegacyAuthSettings       = "auth_settings"
+	colPlugins                  = "plugins"
 )
 
 func ensureProjectSettingsSQLColumns(ctx context.Context, db *bun.DB) error {
@@ -28,6 +29,7 @@ func ensureProjectSettingsSQLColumns(ctx context.Context, db *bun.DB) error {
 		stmts := []string{
 			`ALTER TABLE projects ADD COLUMN ` + colAuthenticationSettings + ` TEXT`,
 			`ALTER TABLE projects ADD COLUMN ` + colStorageSettings + ` TEXT`,
+			`ALTER TABLE projects ADD COLUMN ` + colPlugins + ` TEXT`,
 			`ALTER TABLE project_settings ADD COLUMN idle_tenant_retention_days INTEGER NOT NULL DEFAULT 90`,
 			`ALTER TABLE project_settings ADD COLUMN auto_soft_delete_idle_tenants INTEGER NOT NULL DEFAULT 0`,
 		}
@@ -40,6 +42,7 @@ func ensureProjectSettingsSQLColumns(ctx context.Context, db *bun.DB) error {
 		stmts := []string{
 			`ALTER TABLE projects ADD COLUMN IF NOT EXISTS ` + colAuthenticationSettings + ` JSONB`,
 			`ALTER TABLE projects ADD COLUMN IF NOT EXISTS ` + colStorageSettings + ` JSONB`,
+			`ALTER TABLE projects ADD COLUMN IF NOT EXISTS ` + colPlugins + ` JSONB`,
 			`ALTER TABLE project_settings ADD COLUMN IF NOT EXISTS idle_tenant_retention_days INTEGER NOT NULL DEFAULT 90`,
 			`ALTER TABLE project_settings ADD COLUMN IF NOT EXISTS auto_soft_delete_idle_tenants BOOLEAN NOT NULL DEFAULT false`,
 		}
@@ -52,6 +55,7 @@ func ensureProjectSettingsSQLColumns(ctx context.Context, db *bun.DB) error {
 		stmts := []string{
 			`ALTER TABLE projects ADD COLUMN ` + colAuthenticationSettings + ` JSON NULL`,
 			`ALTER TABLE projects ADD COLUMN ` + colStorageSettings + ` JSON NULL`,
+			`ALTER TABLE projects ADD COLUMN ` + colPlugins + ` JSON NULL`,
 			`ALTER TABLE project_settings ADD COLUMN idle_tenant_retention_days INT NOT NULL DEFAULT 90`,
 			`ALTER TABLE project_settings ADD COLUMN auto_soft_delete_idle_tenants TINYINT(1) NOT NULL DEFAULT 0`,
 		}
