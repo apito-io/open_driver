@@ -362,8 +362,8 @@ func (d *Driver) CreateProject(ctx context.Context, userId string, project *mode
 			Model(&map[string]interface{}{
 				"user_id":     userId,
 				"project_id":  project.ID,
-				"role":        "admin",
-				"permissions": `["read", "write", "admin"]`,
+				"role":        models.MembershipRoleAdmin,
+				"permissions": sqlcommon.FullAdminPermissionsJSON(),
 			}).
 			TableExpr("user_projects").
 			Exec(ctx); err != nil {
@@ -400,8 +400,10 @@ func (d *Driver) CreateSystemUser(ctx context.Context, user *models.SystemUser) 
 	_, err := d.ORM.NewInsert().
 		Model(user).
 		Exec(ctx)
-
-	return user, err
+	if err != nil {
+		return user, err
+	}
+	return user, nil
 }
 
 // UpdateSystemUser updates a system user using SQL

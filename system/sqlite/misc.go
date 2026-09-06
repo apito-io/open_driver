@@ -155,6 +155,8 @@ func (d *Driver) CheckProjectWithRoles(ctx context.Context, userId, projectId st
 		json.Unmarshal([]byte(permissions), &permList)
 	}
 
+	models.ApplyProjectBillingLock(user, project)
+
 	return &models.ProjectWithRoles{
 		User:            user,
 		Project:         project,

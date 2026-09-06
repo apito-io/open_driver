@@ -18,7 +18,7 @@ func EnsureUserProjectInviteColumns(ctx context.Context, db *bun.DB) error {
 		return errors.New("sql: nil ORM for user_projects invite migration")
 	}
 	cols := []struct {
-		name string
+		name              string
 		sqlite, pg, mysql string
 	}{
 		{"invite_status", "TEXT", "VARCHAR", "VARCHAR(32) NULL"},

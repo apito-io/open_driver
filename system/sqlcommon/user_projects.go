@@ -153,3 +153,12 @@ func DropObsoleteTeamOrgTables(ctx context.Context, orm *bun.DB) error {
 	}
 	return nil
 }
+
+// FullAdminPermissionsJSON is the creator grant payload for user_projects.
+func FullAdminPermissionsJSON() string {
+	raw, err := json.Marshal(models.MembershipPermissions(nil, true))
+	if err != nil {
+		return `[]`
+	}
+	return string(raw)
+}

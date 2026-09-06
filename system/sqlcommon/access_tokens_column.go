@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	colAccessTokens = "access_tokens"
+	colAccessTokens  = "access_tokens"
 	tableSystemUsers = "system_users"
 )
 

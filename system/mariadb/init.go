@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"gitlab.com/apito.io/open_driver/system/bootstrapmeta"
-	"gitlab.com/apito.io/open_driver/system/sqlcommon"
 	"github.com/apito-io/engine/interfaces"
 	"github.com/apito-io/engine/models"
 	"github.com/uptrace/bun/dialect"
+	"gitlab.com/apito.io/open_driver/system/bootstrapmeta"
+	"gitlab.com/apito.io/open_driver/system/sqlcommon"
 )
 
 type Driver struct {
@@ -79,6 +79,9 @@ func (d *Driver) RunMigration(ctx context.Context) error {
 		return err
 	}
 	if err := sqlcommon.EnsureUserProjectInviteColumns(ctx, d.ORM); err != nil {
+		return err
+	}
+	if err := sqlcommon.EnsureProjectTempBannedColumn(ctx, d.ORM); err != nil {
 		return err
 	}
 	if err := sqlcommon.EnsureProjectPlanSeedOmissionsColumn(ctx, d.ORM); err != nil {
