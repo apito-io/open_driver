@@ -1,8 +1,9 @@
 # open_driver — Handoff
 
-- **v1.0.21** tagged on `main` — D1 `pro_tenants.partner_id`.
-  Engine **v2.4.48** requires this tag.
-- Prior: **v1.0.20** COUNT total, ListUserProjects, ListTeams hydrate.
+- Tag **v1.0.25** for common-model storage.
+- Do not import `sqlquery` from `sqlcommon` (cycle).
+- SQLite reduce restores `PRAGMA foreign_keys` on every exit.
+- PG/MySQL/MariaDB hide-deleted compiles; not E2E-certified.
 
 ## Last Updated
-2026-09-02
+2026-09-07

@@ -65,6 +65,9 @@ func (d *Driver) EnsureRelationArtifactsFromSchema(ctx context.Context, modelsLi
 			if fromArg == nil || toArg == nil {
 				continue
 			}
+			if models.SkipRelationArtifactsOnConnection(ctx, fromModel, toModel) {
+				continue
+			}
 			if err := d.AddRelationFields(ctx, fromArg, toArg); err != nil {
 				return err
 			}

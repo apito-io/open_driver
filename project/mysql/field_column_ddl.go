@@ -185,6 +185,9 @@ func isDuplicateSQLColumnError(err error) bool {
 // match schema (e.g. SaaS tenant catalogue name/logo after CreateModelTable created id-only table).
 // Idempotent: duplicate column errors are ignored.
 func (d *Driver) EnsureModelUserFieldColumns(ctx context.Context, model *models.ModelType) error {
+	if models.SkipCommonModelShadowFieldDDL(ctx, model) {
+		return nil
+	}
 	if model == nil || len(model.Fields) == 0 {
 		return nil
 	}

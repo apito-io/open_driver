@@ -36,3 +36,26 @@ func (d *Driver) createModelTableExec(ctx context.Context, db bun.IDB, model *mo
 func (d *Driver) CreateModelTable(ctx context.Context, model *models.ModelType, ifNotExists bool) error {
 	return d.createModelTableExec(ctx, d.ORM, model, ifNotExists)
 }
+
+// ReduceModelTableToShadow rebuilds a tenant table as id-only.
+func (d *Driver) ReduceModelTableToShadow(ctx context.Context, modelName string) error {
+	table := utility.PhysicalSQLTableName(modelName)
+	if table == "" {
+		return nil
+	}
+	qtable := QuotePGIdent(strings.ReplaceAll(table, `"`, `""`))
+	tmpName := "__shadow_" + strings.ReplaceAll(table, `"`, "")
+	qtmp := QuotePGIdent(tmpName)
+	stmts := []string{
+		fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s ( id VARCHAR(36) NOT NULL PRIMARY KEY )", qtmp),
+		fmt.Sprintf("INSERT INTO %s (id) SELECT id FROM %s ON CONFLICT (id) DO NOTHING", qtmp, qtable),
+		fmt.Sprintf("DROP TABLE %s CASCADE", qtable),
+		fmt.Sprintf("ALTER TABLE %s RENAME TO %s", qtmp, qtable),
+	}
+	for _, q := range stmts {
+		if _, err := d.ORM.NewRaw(q).Exec(ctx); err != nil {
+			return fmt.Errorf("reduce %s to shadow: %w", table, err)
+		}
+	}
+	return nil
+}

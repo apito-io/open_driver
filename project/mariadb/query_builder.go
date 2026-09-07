@@ -934,6 +934,13 @@ func RootResolverQueryBuilder(cfg *models.Config, param *models.CommonSystemPara
 	if err := mergeQueryFilterHookSQL(cfg, param, filters, "x", &sqlArgs); err != nil {
 		return "", nil, err
 	}
+	if len(param.DocumentIDs) > 0 {
+		ph := strings.TrimSuffix(strings.Repeat("?,", len(param.DocumentIDs)), ",")
+		filters["AND"] = append(filters["AND"], fmt.Sprintf(`x.id IN (%s)`, ph))
+		for _, id := range param.DocumentIDs {
+			sqlArgs = append(sqlArgs, id)
+		}
+	}
 	for i := range connPreds {
 		filters["AND"] = append(filters["AND"], connPreds[i])
 		sqlArgs = append(sqlArgs, connArgs[i])

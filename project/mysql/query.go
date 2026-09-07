@@ -369,6 +369,26 @@ func (d *Driver) runDualHasOneDisconnectTx(ctx context.Context, tx bun.IDB, para
 	return err
 }
 
+func (d *Driver) ensureCommonShadowRowsTx(ctx context.Context, tx bun.IDB, root *models.CommonSystemParams, cdp *models.ConnectDisconnectParam) error {
+	if d == nil || cdp == nil || root == nil {
+		return nil
+	}
+	if models.IsBaseProjectDB(ctx) {
+		return nil
+	}
+	eng := ""
+	if d.DriverCredential != nil {
+		eng = d.DriverCredential.Engine
+	}
+	for _, t := range sqlquery.CommonShadowTargets(root.ProjectSchemaModels, root.Model, cdp) {
+		q, args := sqlquery.InsertShadowIDSQL(eng, t.Table, t.ID)
+		if _, err := tx.NewRaw(q, args...).Exec(ctx); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (d *Driver) ConnectBuilder(ctx context.Context, root *models.CommonSystemParams) error {
 	if root == nil || len(root.ConDisParam) == 0 {
 		return nil
@@ -381,6 +401,9 @@ func (d *Driver) ConnectBuilder(ctx context.Context, root *models.CommonSystemPa
 	}
 	return d.runInTxOrBypass(ctx, func(ctx context.Context, tx bun.IDB) error {
 		for _, cdp := range root.ConDisParam {
+			if err := d.ensureCommonShadowRowsTx(ctx, tx, root, cdp); err != nil {
+				return err
+			}
 			for _, id := range cdp.ActionIDs {
 				nar := connectBuilderConnectNarrative(cdp, id)
 				logConnectBuilderBegin(nar)
@@ -716,7 +739,7 @@ func (d *Driver) GetSingleProjectDocument(ctx context.Context, param *models.Com
 	}
 
 	doc.Type = param.Model.Name
-	return doc, nil
+	return sqlquery.HideDeletedCommonDocument(param.Model, doc), nil
 }
 
 func (d *Driver) BuildFieldClassification(_fields []*models.FieldInfo) *FieldClassification {
@@ -797,7 +820,7 @@ func (d *Driver) GetSingleRawDocumentFromProject(ctx context.Context, param *mod
 	}
 
 	doc.Type = param.Model.Name
-	return doc, nil
+	return sqlquery.HideDeletedCommonDocument(param.Model, doc), nil
 }
 
 // GetAllRelationDocumentsOfSingleDocument retrieves all relation data of a single document by ID.

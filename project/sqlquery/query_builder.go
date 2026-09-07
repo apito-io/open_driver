@@ -803,8 +803,9 @@ func RootResolverQueryBuilder(cfg *models.Config, param *models.CommonSystemPara
 		}
 	}
 
-	// Meta join is needed for list projection and for own ACL (list + count).
-	if (!returnCount || ownFilter) && (param.Model == nil || !models.ModelIsProjectAuthUserModel(param.Model)) {
+	needMetaJoin := (!returnCount || ownFilter || models.ModelIsCommon(param.Model)) &&
+		(param.Model == nil || !models.ModelIsProjectAuthUserModel(param.Model))
+	if needMetaJoin {
 		leftJoins = append(leftJoins, `left join meta as y on y.doc_id = x.id`)
 	}
 
@@ -826,8 +827,18 @@ func RootResolverQueryBuilder(cfg *models.Config, param *models.CommonSystemPara
 		filters["AND"] = append(filters["AND"], `y.created_by = ?`)
 		sqlArgs = append(sqlArgs, param.UserID)
 	}
+	if models.ModelIsCommon(param.Model) {
+		filters["AND"] = append(filters["AND"], CommonModelExcludeDeletedSQL())
+	}
 	if err := MergeQueryFilterHookSQL(cfg, param, filters, "x", &sqlArgs); err != nil {
 		return "", nil, err
+	}
+	if len(param.DocumentIDs) > 0 {
+		ph := strings.TrimSuffix(strings.Repeat("?,", len(param.DocumentIDs)), ",")
+		filters["AND"] = append(filters["AND"], fmt.Sprintf(`x.id IN (%s)`, ph))
+		for _, id := range param.DocumentIDs {
+			sqlArgs = append(sqlArgs, id)
+		}
 	}
 	for i := range connPreds {
 		filters["AND"] = append(filters["AND"], connPreds[i])

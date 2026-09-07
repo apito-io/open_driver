@@ -628,6 +628,10 @@ func (d *Driver) AddFieldToModel(ctx context.Context, param *models.CommonSystem
 		return param.Model, nil
 	}
 
+	if models.SkipCommonModelShadowFieldDDL(ctx, param.Model) {
+		return param.Model, nil
+	}
+
 	tableName := utility.PhysicalSQLTableName(param.Model.Name)
 	stmts, err := AlterTableAddFieldSQL(d.DriverCredential.Engine, tableName, param.FieldInfo)
 	if err != nil {
@@ -688,6 +692,9 @@ func (d *Driver) CreateMediaDocument(ctx context.Context, projectId string, medi
 }
 
 func (d *Driver) AddDocumentToProject(ctx context.Context, param *models.CommonSystemParams, doc *types.DefaultDocumentStructure) (interface{}, error) {
+	if err := d.ensureMetaFilesReady(ctx); err != nil {
+		return nil, err
+	}
 	if locked := d.lockSQLiteWrite(); locked {
 		defer d.unlockSQLiteWrite()
 	}
@@ -829,6 +836,17 @@ func (d *Driver) DeleteDocumentFromProject(ctx context.Context, param *models.Co
 	tableName := utility.PhysicalSQLTableName(param.Model.Name)
 	if locked := d.lockSQLiteWrite(); locked {
 		defer d.unlockSQLiteWrite()
+	}
+
+	if models.ModelIsCommon(param.Model) {
+		return d.runInTxOrBypass(ctx, func(ctx context.Context, tx bun.IDB) error {
+			_, err := tx.NewUpdate().Table("meta").
+				Set("status = ?", "deleted").
+				Set("updated_at = ?", utility.GetCurrentTime()).
+				Where("doc_id = ?", param.DocumentID).
+				Exec(ctx)
+			return err
+		})
 	}
 
 	return d.runInTxOrBypass(ctx, func(ctx context.Context, tx bun.IDB) error {

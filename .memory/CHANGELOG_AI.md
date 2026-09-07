@@ -1,5 +1,18 @@
 # open_driver — AI Changelog
 
+## 2026-09-07 — common-model shadows + SQLite reduce (v1.0.25)
+
+- **Changed:** `InsertShadowIDs` / distinct column list on sqlcommon.
+  Hide deleted on list/count/GetSingle. SQLite reduce copies IDs,
+  verifies, then drops source; recreates id-only indexes; restores
+  foreign_keys pragma.
+- **Why:** Tenant tables must stay id-only without losing child FKs.
+  sqlcommon↔sqlquery import was a cycle.
+- **Affected:** `project/sqlcommon/shadow.go`, `sqlquery/common_*.go`,
+  `project/sqlite/model_ddl.go`. Tag **v1.0.25**.
+
+---
+
 ## 2026-09-03 — invites + membership store (v1.0.22)
 
 - **Changed:** `user_projects` invite columns; membership store + retired

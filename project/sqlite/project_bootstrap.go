@@ -208,6 +208,17 @@ func execMetaFilesSecondaryDDLRemote(ctx context.Context, db *bun.DB) error {
 	return nil
 }
 
+func (d *Driver) ensureMetaFilesReady(ctx context.Context) error {
+	ok, err := d.metaTableExists(ctx)
+	if err != nil {
+		return err
+	}
+	if ok {
+		return nil
+	}
+	return d.EnsureMetaFilesTables(ctx)
+}
+
 func (d *Driver) metaTableExists(ctx context.Context) (bool, error) {
 	switch d.DriverCredential.Engine {
 	case _const.PostgreSQLDriver:
