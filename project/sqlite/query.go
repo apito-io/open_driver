@@ -399,7 +399,7 @@ func (d *Driver) ConnectBuilder(ctx context.Context, root *models.CommonSystemPa
 	if locked := d.lockSQLiteWrite(); locked {
 		defer d.unlockSQLiteWrite()
 	}
-	return d.runInTxOrBypass(ctx, func(ctx context.Context, tx bun.IDB) error {
+	err := d.runInTxOrBypass(ctx, func(ctx context.Context, tx bun.IDB) error {
 		for _, cdp := range root.ConDisParam {
 			if err := d.ensureCommonShadowRowsTx(ctx, tx, root, cdp); err != nil {
 				return err
@@ -510,6 +510,7 @@ func (d *Driver) ConnectBuilder(ctx context.Context, root *models.CommonSystemPa
 		}
 		return nil
 	})
+	return err
 }
 
 func (d *Driver) DisconnectBuilder(ctx context.Context, param *models.CommonSystemParams) error {

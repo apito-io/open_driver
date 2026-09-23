@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"context"
+	"sort"
 	"strings"
 
 	"github.com/apito-io/engine/models"
@@ -11,10 +12,39 @@ import (
 // EnsureRelationArtifactsFromSchema creates missing SQL artifacts for schema-declared relations
 // (pivot tables, FK columns, constraints) via AddRelationFields. Idempotent where supported.
 // Needed when projects were authored on Arango (edges only) or bootstrap only created model tables.
+func relationArtifactSignature(modelsList []*models.ModelType) string {
+	parts := make([]string, 0, len(modelsList)*4)
+	for _, m := range modelsList {
+		if m == nil {
+			continue
+		}
+		name := strings.TrimSpace(utility.PhysicalSQLTableName(m.Name))
+		if name == "" {
+			continue
+		}
+		for _, conn := range m.Connections {
+			if conn == nil {
+				continue
+			}
+			parts = append(parts, name+"|"+strings.TrimSpace(conn.Model)+"|"+conn.Relation+"|"+conn.Type+"|"+conn.KnownAs)
+		}
+	}
+	sort.Strings(parts)
+	return strings.Join(parts, "\n")
+}
+
 func (d *Driver) EnsureRelationArtifactsFromSchema(ctx context.Context, modelsList []*models.ModelType) error {
 	if d == nil || len(modelsList) == 0 {
 		return nil
 	}
+	sig := relationArtifactSignature(modelsList)
+	d.relationEnsure.mu.Lock()
+	if sig != "" && d.relationEnsure.sig == sig {
+		d.relationEnsure.mu.Unlock()
+		return nil
+	}
+	d.relationEnsure.mu.Unlock()
+
 	byName := make(map[string]*models.ModelType)
 	for _, m := range modelsList {
 		if m == nil {
@@ -72,6 +102,11 @@ func (d *Driver) EnsureRelationArtifactsFromSchema(ctx context.Context, modelsLi
 				return err
 			}
 		}
+	}
+	if sig != "" {
+		d.relationEnsure.mu.Lock()
+		d.relationEnsure.sig = sig
+		d.relationEnsure.mu.Unlock()
 	}
 	return nil
 }

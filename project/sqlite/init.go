@@ -1,15 +1,22 @@
 package sqlite
 
 import (
+	"sync"
+
 	_const "github.com/apito-io/engine/const"
-	"gitlab.com/apito.io/open_driver/project/sqlcommon"
 	"github.com/apito-io/engine/interfaces"
 	"github.com/apito-io/engine/models"
+	"gitlab.com/apito.io/open_driver/project/sqlcommon"
 )
 
 // Driver is the SQLite project SQL driver.
 type Driver struct {
 	sqlcommon.Driver
+	// relationEnsure skips a full schema DDL walk after the first success for this signature.
+	relationEnsure struct {
+		mu  sync.Mutex
+		sig string
+	}
 }
 
 // GetDriver opens a SQLite project driver.

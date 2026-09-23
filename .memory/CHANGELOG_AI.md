@@ -1,5 +1,13 @@
 # open_driver — AI Changelog
 
+## 2026-09-23 — SQLite food_order write trace
+
+- **Changed:** Insert, connect-begin, connect-SQL, and connect-tx logs for model `food_order` only (DDL ms, lock wait, SQL text truncated).
+- **Why:** Count queries and find the slow phase on a local POS create.
+- **Affected:** `project/sqlite/mutation.go`, `query.go`, `food_order_debug_log.go`. Not tagged.
+
+---
+
 ## 2026-09-07 — common-model shadows + SQLite reduce (v1.0.25)
 
 - **Changed:** `InsertShadowIDs` / distinct column list on sqlcommon.
