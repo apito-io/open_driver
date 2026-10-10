@@ -71,9 +71,12 @@ func (d *Driver) EnsureRelationArtifactsFromSchema(ctx context.Context, modelsLi
 			if err := d.AddRelationFields(ctx, fromArg, toArg); err != nil {
 				return err
 			}
+			if err := d.dropStaleOneToOneUnique(ctx, fromArg, toArg); err != nil {
+				return err
+			}
 		}
 	}
-	return nil
+	return d.ApplyUniqueKeyDDL(ctx, modelsList, nil)
 }
 
 // addRelationFieldsArgsFromSchemaPair builds (from, to) for AddRelationFields from a forward/backward schema pair.

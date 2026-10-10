@@ -1,5 +1,21 @@
 # open_driver — AI Changelog
 
+## 2026-10-11 — verified relation cardinality migration
+
+- **Changed:** `PreviewRelationCardinality`, `MigrateRelationCardinality`, and `VerifyRelationCardinality` in `sqlquery`. SQL drivers delegate. D1 is unsupported. Mongo and bbolt are metadata-only.
+- **Why:** A cardinality edit has to copy links and remove the old FK or pivot only after the pair sets match.
+- **Affected:** `project/sqlquery/relation_migrate.go` and each driver's `relation_cardinality.go`. SQLite tests passed. Not tagged.
+
+---
+
+## 2026-10-05 — composite unique and stale 1:1 index
+
+- **Changed:** `ApplyUniqueKeyDDL` and `ApplyStaleOneToOne` on sqlite, postgres, mysql, mariadb. Ensure calls them after `AddRelationFields`. SQLite relation signature includes unique keys.
+- **Why:** Switching Suchok stock off 1:1 must remove `idx_stock_variant_id_unique` and add `idx_stock_variant_warehouse` while `variant_id` values stay.
+- **Affected:** `project/sqlquery/unique_key_ddl.go`, each driver's `relation_ensure.go` and `unique_key_ddl.go`. Not tagged. Uncommitted.
+
+---
+
 ## 2026-09-23 — SQLite food_order write trace
 
 - **Changed:** Insert, connect-begin, connect-SQL, and connect-tx logs for model `food_order` only (DDL ms, lock wait, SQL text truncated).

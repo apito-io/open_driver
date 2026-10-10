@@ -28,6 +28,12 @@ func relationArtifactSignature(modelsList []*models.ModelType) string {
 			}
 			parts = append(parts, name+"|"+strings.TrimSpace(conn.Model)+"|"+conn.Relation+"|"+conn.Type+"|"+conn.KnownAs)
 		}
+		for _, key := range m.UniqueKeys {
+			if key == nil {
+				continue
+			}
+			parts = append(parts, name+"|uk|"+strings.TrimSpace(key.Name)+"|"+strings.Join(key.Columns, ","))
+		}
 	}
 	sort.Strings(parts)
 	return strings.Join(parts, "\n")
@@ -101,7 +107,13 @@ func (d *Driver) EnsureRelationArtifactsFromSchema(ctx context.Context, modelsLi
 			if err := d.AddRelationFields(ctx, fromArg, toArg); err != nil {
 				return err
 			}
+			if err := d.dropStaleOneToOneUnique(ctx, fromArg, toArg); err != nil {
+				return err
+			}
 		}
+	}
+	if err := d.ApplyUniqueKeyDDL(ctx, modelsList, nil); err != nil {
+		return err
 	}
 	if sig != "" {
 		d.relationEnsure.mu.Lock()

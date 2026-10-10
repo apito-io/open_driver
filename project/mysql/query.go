@@ -20,16 +20,10 @@ import (
 )
 
 func (d *Driver) maybeEnsureRelationDDL(ctx context.Context, param *models.CommonSystemParams) error {
-	if d == nil || param == nil || param.ResolveParams == nil {
+	if d == nil || !sqlquery.RelationEnsureNeeded(param) {
 		return nil
 	}
-	conn, ok := param.ResolveParams.Args["connection"].(map[string]interface{})
-	if !ok || len(conn) == 0 {
-		return nil
-	}
-	if len(param.ProjectSchemaModels) == 0 {
-		return nil
-	}
+	ctx = models.WithSharedSaaSIndex(ctx, models.SharedSaaSIndexFromParam(param))
 	return d.EnsureRelationArtifactsFromSchema(ctx, param.ProjectSchemaModels)
 }
 
@@ -37,6 +31,7 @@ func (d *Driver) maybeEnsureRelationDDLForMutation(ctx context.Context, param *m
 	if d == nil || param == nil || len(param.ConDisParam) == 0 || len(param.ProjectSchemaModels) == 0 {
 		return nil
 	}
+	ctx = models.WithSharedSaaSIndex(ctx, models.SharedSaaSIndexFromParam(param))
 	return d.EnsureRelationArtifactsFromSchema(ctx, param.ProjectSchemaModels)
 }
 

@@ -1,5 +1,9 @@
 # open_driver — Handoff
 
+- **2026-10-11:** SQL cardinality migration is in `sqlquery`. SQLite execution tests passed. Postgres/MySQL/MariaDB share the functions; they were not run against live servers. D1 fails closed. Mongo and bbolt do not pretend SQL ran.
+- **Next:** Engine restart, then a local Prottoy preview. Do not tag. Do not `./command.sh save` until asked.
+- **2026-10-05:** `ApplyStaleOneToOne` drops `idx_<table>_<fk>_unique` only. Both sides still `has_one` drops nothing. Shared SaaS prefixes `tenant_id` except common and tenant-catalogue models. Duplicate rows fail index create.
+- **Next:** Engine rebuild before Suchok dry-run. Do not tag. Do not `./command.sh save` until asked.
 - **2026-09-23:** `project/sqlite` food-order trace only. Restart engine `:5050` before a local order. Do not tag. Do not copy the logs into mysql/postgres.
 - Tag **v1.0.25** for common-model storage.
 - Do not import `sqlquery` from `sqlcommon` (cycle).
