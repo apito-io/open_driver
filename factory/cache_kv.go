@@ -6,12 +6,12 @@ import (
 
 	"github.com/apito-io/engine/interfaces"
 	"github.com/apito-io/engine/models"
-	"gitlab.com/apito.io/open_driver/cache/bbolt"
-	"gitlab.com/apito.io/open_driver/cache/memory"
-	"gitlab.com/apito.io/open_driver/cache/redis"
-	kvbbolt "gitlab.com/apito.io/open_driver/kv/bbolt"
-	kvmemory "gitlab.com/apito.io/open_driver/kv/memory"
-	kvredis "gitlab.com/apito.io/open_driver/kv/redis"
+	"github.com/apito-io/open_driver/cache/bbolt"
+	"github.com/apito-io/open_driver/cache/memory"
+	"github.com/apito-io/open_driver/cache/redis"
+	kvbbolt "github.com/apito-io/open_driver/kv/bbolt"
+	kvmemory "github.com/apito-io/open_driver/kv/memory"
+	kvredis "github.com/apito-io/open_driver/kv/redis"
 )
 
 // DefaultCacheFactory creates cache drivers for open-core engines.

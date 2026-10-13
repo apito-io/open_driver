@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	_const "github.com/apito-io/engine/const"
-	"gitlab.com/apito.io/open_driver/system/bootstrapmeta"
 	"github.com/apito-io/engine/models"
+	"github.com/apito-io/open_driver/system/bootstrapmeta"
 )
 
 // OSSBootstrapProjectDriver returns fixed starter-project credentials for first boot when the
@@ -21,6 +21,12 @@ func OSSBootstrapProjectDriver(cfg *models.Config, projectID string) *models.Dri
 		return &models.DriverCredentials{
 			ProjectID: projectID,
 			Engine:    _const.CoreDB,
+			File:      bootstrapmeta.OSSStarterSQLiteFile,
+		}
+	case strings.ToLower(_const.SQLiteDriver):
+		return &models.DriverCredentials{
+			ProjectID: projectID,
+			Engine:    _const.SQLiteDriver,
 			File:      bootstrapmeta.OSSStarterSQLiteFile,
 		}
 	case strings.ToLower(_const.MongoDBDriver):

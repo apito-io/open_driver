@@ -49,7 +49,16 @@ func BuildPostgresDSN(c *models.DriverCredentials) (string, error) {
 }
 
 // OpenSQLite opens a local SQLite system database.
+// When SQLITE_DATA_DIR is set, the file is {SQLITE_DATA_DIR}/sqlite/system/system.db.
+// That directory must be the public engine's own data folder.
 func OpenSQLite(cfg *models.Config, cred *models.DriverCredentials) (*bun.DB, error) {
+	if cfg != nil && strings.TrimSpace(cfg.SQLiteDataDir) != "" && strings.TrimSpace(cred.File) == "" {
+		dbPath, err := utility.ExpandPath(filepath.Join(cfg.SQLiteDataDir, "sqlite", "system", "system.db"))
+		if err != nil {
+			return nil, fmt.Errorf("failed to expand database path %s: %v", dbPath, err)
+		}
+		return openSQLiteFile(dbPath)
+	}
 	baseDir := "."
 	if cfg != nil && cfg.DefaultDatabaseDir != "" {
 		baseDir = cfg.DefaultDatabaseDir
@@ -70,6 +79,10 @@ func OpenSQLite(cfg *models.Config, cred *models.DriverCredentials) (*bun.DB, er
 	if err != nil {
 		return nil, fmt.Errorf("failed to expand database path %s: %v", dbPath, err)
 	}
+	return openSQLiteFile(dbPath)
+}
+
+func openSQLiteFile(dbPath string) (*bun.DB, error) {
 	sqldb, err := sql.Open(sqliteshim.ShimName, fmt.Sprintf("file:%s?cache=shared&mode=rwc", dbPath))
 	if err != nil {
 		return nil, err

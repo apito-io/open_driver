@@ -7,10 +7,10 @@ import (
 
 	"github.com/apito-io/engine/interfaces"
 	"github.com/apito-io/engine/models"
-	cached1 "gitlab.com/apito.io/open_driver/cache/d1"
-	"gitlab.com/apito.io/open_driver/cache/memory"
-	kvd1 "gitlab.com/apito.io/open_driver/kv/d1"
-	kvmemory "gitlab.com/apito.io/open_driver/kv/memory"
+	cached1 "github.com/apito-io/open_driver/cache/d1"
+	"github.com/apito-io/open_driver/cache/memory"
+	kvd1 "github.com/apito-io/open_driver/kv/d1"
+	kvmemory "github.com/apito-io/open_driver/kv/memory"
 )
 
 // CacheFactory uses D1 on Workers so cache survives isolate churn.

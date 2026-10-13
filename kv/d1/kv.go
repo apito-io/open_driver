@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/apito-io/engine/models"
-	"gitlab.com/apito.io/open_driver/cfd1"
-	kvmemory "gitlab.com/apito.io/open_driver/kv/memory"
+	"github.com/apito-io/open_driver/cfd1"
+	kvmemory "github.com/apito-io/open_driver/kv/memory"
 )
 
 // KVD1Service persists KV entries in SYSTEM_D1 so JWT sessions survive Worker isolate churn.

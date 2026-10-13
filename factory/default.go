@@ -6,8 +6,8 @@ import (
 	_const "github.com/apito-io/engine/const"
 	"github.com/apito-io/engine/interfaces"
 	"github.com/apito-io/engine/models"
-	"gitlab.com/apito.io/open_driver/project"
-	"gitlab.com/apito.io/open_driver/system"
+	"github.com/apito-io/open_driver/project"
+	"github.com/apito-io/open_driver/system"
 )
 
 // DefaultFactory implements open-core database drivers (BBolt, SQL, Mongo).

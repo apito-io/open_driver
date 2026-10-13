@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	_const "github.com/apito-io/engine/const"
-	"gitlab.com/apito.io/open_driver/cfd1"
+	"github.com/apito-io/open_driver/cfd1"
 )
 
 // EngineIsSQLiteLike reports engines that use SQLite semantics on Workers (D1).

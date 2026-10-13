@@ -1,7 +1,7 @@
 package mysql
 
 import (
-	"gitlab.com/apito.io/open_driver/system/sqlcommon"
+	"github.com/apito-io/open_driver/system/sqlcommon"
 	"context"
 	"database/sql"
 	"testing"

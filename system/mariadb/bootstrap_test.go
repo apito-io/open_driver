@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/apito.io/open_driver/system/bootstrapmeta"
+	"github.com/apito-io/open_driver/system/bootstrapmeta"
 	"github.com/apito-io/engine/models"
 	"github.com/stretchr/testify/require"
 	"github.com/uptrace/bun"

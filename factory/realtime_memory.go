@@ -6,7 +6,7 @@ import (
 
 	"github.com/apito-io/engine/interfaces"
 	"github.com/apito-io/engine/models"
-	"gitlab.com/apito.io/open_driver/realtime/memory"
+	"github.com/apito-io/open_driver/realtime/memory"
 )
 
 // DefaultMemoryRealtimeFactory creates the in-process memory realtime bus.

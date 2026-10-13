@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"gitlab.com/apito.io/open_driver/system/sqlcommon"
+	"github.com/apito-io/open_driver/system/sqlcommon"
 	"github.com/apito-io/engine/models"
 	"github.com/uptrace/bun"
 )

@@ -9,7 +9,6 @@ import (
 
 	ae "github.com/apito-io/engine/err"
 	"github.com/apito-io/engine/models"
-	cm "gitlab.com/apito.io/engine/models"
 )
 
 func (d *Driver) CreateProject(ctx context.Context, userId string, project *models.Project) (*models.Project, error) {
@@ -100,29 +99,7 @@ func (d *Driver) GetSystemUser(ctx context.Context, id string) (*models.SystemUs
 	return rowToSystemUser(row)
 }
 
-func (d *Driver) PersistProProject(ctx context.Context, project *cm.ProProject) error {
-	raw, err := json.Marshal(project)
-	if err != nil {
-		return err
-	}
-	_, err = d.DB.Exec(ctx, `INSERT INTO pro_projects (project_id, data) VALUES (?, ?) ON CONFLICT(project_id) DO UPDATE SET data = excluded.data`,
-		project.ID, string(raw))
-	return err
-}
-
-func (d *Driver) LoadProProject(ctx context.Context, id string) (*cm.ProProject, error) {
-	row, err := d.DB.QueryRow(ctx, `SELECT data FROM pro_projects WHERE project_id = ?`, strings.TrimSpace(id))
-	if err != nil || row == nil {
-		return nil, err
-	}
-	var p cm.ProProject
-	if err := json.Unmarshal([]byte(asString(row["data"])), &p); err != nil {
-		return nil, err
-	}
-	return &p, nil
-}
-
-// DeleteProjectFromSystem removes catalog rows for a project from SYSTEM_D1.
+// DeleteProjectFromSystem removes catalog rows for a project from the system database.
 func (d *Driver) DeleteProjectFromSystem(ctx context.Context, projectId string) error {
 	if d == nil || d.DB == nil {
 		return cfd1Err("delete project from system: invalid state")
@@ -132,14 +109,8 @@ func (d *Driver) DeleteProjectFromSystem(ctx context.Context, projectId string) 
 		return fmt.Errorf("project id required")
 	}
 	stmts := []string{
-		`DELETE FROM schema_change_execution_records WHERE project_id = ?`,
-		`DELETE FROM pro_schema_change_events WHERE project_id = ?`,
-		`DELETE FROM pro_schema_changesets WHERE project_id = ?`,
-		`DELETE FROM pro_schema_versions WHERE project_id = ?`,
-		`DELETE FROM pro_tenants WHERE project_id = ?`,
 		`DELETE FROM model_types WHERE project_id = ?`,
 		`DELETE FROM project_schemas WHERE project_id = ?`,
-		`DELETE FROM pro_projects WHERE project_id = ?`,
 		`DELETE FROM projects WHERE id = ?`,
 	}
 	for _, sql := range stmts {

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/apito.io/open_driver/project/sqlcommon"
-	"gitlab.com/apito.io/open_driver/project/sqlquery"
+	"github.com/apito-io/open_driver/project/sqlcommon"
+	"github.com/apito-io/open_driver/project/sqlquery"
 
 	_const "github.com/apito-io/engine/const"
 	"github.com/apito-io/engine/models"

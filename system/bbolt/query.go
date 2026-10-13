@@ -11,7 +11,7 @@ import (
 
 // User-related functions
 
-func (d *ProBBoltSystemDriver) CreateSystemUser(ctx context.Context, user *models.SystemUser) (*models.SystemUser, error) {
+func (d *BBoltSystemDriver) CreateSystemUser(ctx context.Context, user *models.SystemUser) (*models.SystemUser, error) {
 	user.XKey = utility.NewID()
 	user.ID = user.XKey
 	user.CreatedAt = utility.GetCurrentTime()
@@ -26,7 +26,7 @@ func (d *ProBBoltSystemDriver) CreateSystemUser(ctx context.Context, user *model
 	return user, nil
 }
 
-func (d *ProBBoltSystemDriver) UpdateSystemUser(ctx context.Context, user *models.SystemUser, replace bool) error {
+func (d *BBoltSystemDriver) UpdateSystemUser(ctx context.Context, user *models.SystemUser, replace bool) error {
 	collection := d.DB.Collection("users")
 	user.UpdatedAt = utility.GetCurrentTime()
 
@@ -59,7 +59,7 @@ func (d *ProBBoltSystemDriver) UpdateSystemUser(ctx context.Context, user *model
 	}
 }
 
-func (d *ProBBoltSystemDriver) GetSystemUser(ctx context.Context, id string) (*models.SystemUser, error) {
+func (d *BBoltSystemDriver) GetSystemUser(ctx context.Context, id string) (*models.SystemUser, error) {
 	// Call internal pro implementation
 	proUser, err := d.getSystemUser(ctx, id)
 	if err != nil {
@@ -71,7 +71,7 @@ func (d *ProBBoltSystemDriver) GetSystemUser(ctx context.Context, id string) (*m
 }
 
 // Internal pro implementation
-func (d *ProBBoltSystemDriver) getSystemUser(ctx context.Context, id string) (*models.SystemUser, error) {
+func (d *BBoltSystemDriver) getSystemUser(ctx context.Context, id string) (*models.SystemUser, error) {
 	var user models.SystemUser
 	collection := d.DB.Collection("users")
 
@@ -83,7 +83,7 @@ func (d *ProBBoltSystemDriver) getSystemUser(ctx context.Context, id string) (*m
 	return &user, nil
 }
 
-func (d *ProBBoltSystemDriver) GetSystemUserByEmail(ctx context.Context, email string) (*models.SystemUser, error) {
+func (d *BBoltSystemDriver) GetSystemUserByEmail(ctx context.Context, email string) (*models.SystemUser, error) {
 	// Call internal pro implementation
 	proUser, err := d.getSystemUserByEmail(ctx, email)
 	if err != nil {
@@ -95,7 +95,7 @@ func (d *ProBBoltSystemDriver) GetSystemUserByEmail(ctx context.Context, email s
 }
 
 // Internal pro implementation
-func (d *ProBBoltSystemDriver) getSystemUserByEmail(ctx context.Context, email string) (*models.SystemUser, error) {
+func (d *BBoltSystemDriver) getSystemUserByEmail(ctx context.Context, email string) (*models.SystemUser, error) {
 	var users []models.SystemUser
 	collection := d.DB.Collection("users")
 
@@ -111,7 +111,7 @@ func (d *ProBBoltSystemDriver) getSystemUserByEmail(ctx context.Context, email s
 	return &users[0], nil
 }
 
-func (d *ProBBoltSystemDriver) GetSystemUsers(ctx context.Context, keys []string) ([]*models.SystemUser, error) {
+func (d *BBoltSystemDriver) GetSystemUsers(ctx context.Context, keys []string) ([]*models.SystemUser, error) {
 	collection := d.DB.Collection("users")
 	var users []*models.SystemUser
 
@@ -125,7 +125,7 @@ func (d *ProBBoltSystemDriver) GetSystemUsers(ctx context.Context, keys []string
 	return users, nil
 }
 
-func (d *ProBBoltSystemDriver) SearchSystemUsers(ctx context.Context, param *models.CommonSystemParams) (*models.SearchResponse[models.SystemUser], error) {
+func (d *BBoltSystemDriver) SearchSystemUsers(ctx context.Context, param *models.CommonSystemParams) (*models.SearchResponse[models.SystemUser], error) {
 	if param == nil || (!param.AllowUnscopedSystemUserList && !param.HasSystemUserSearchFilter()) {
 		return &models.SearchResponse[models.SystemUser]{Results: []*models.SystemUser{}}, nil
 	}
@@ -154,7 +154,7 @@ func (d *ProBBoltSystemDriver) SearchSystemUsers(ctx context.Context, param *mod
 	}, nil
 }
 
-func (d *ProBBoltSystemDriver) ListAllUsers(ctx context.Context) ([]*models.SystemUser, error) {
+func (d *BBoltSystemDriver) ListAllUsers(ctx context.Context) ([]*models.SystemUser, error) {
 	collection := d.DB.Collection("users")
 	var users []models.SystemUser
 
@@ -173,7 +173,7 @@ func (d *ProBBoltSystemDriver) ListAllUsers(ctx context.Context) ([]*models.Syst
 }
 
 // SearchResource searches for any type of resource
-func (d *ProBBoltSystemDriver) SearchResource(ctx context.Context, param *models.CommonSystemParams) (*models.SearchResponse[any], error) {
+func (d *BBoltSystemDriver) SearchResource(ctx context.Context, param *models.CommonSystemParams) (*models.SearchResponse[any], error) {
 	// This is a generic search function - for BBolt implementation,
 	// we'll search in projects collection by default
 	collection := d.DB.Collection("projects")
@@ -200,7 +200,7 @@ func (d *ProBBoltSystemDriver) SearchResource(ctx context.Context, param *models
 
 // Team and Organization related functions
 
-func (d *ProBBoltSystemDriver) AddATeamMemberToProject(ctx context.Context, req *models.TeamMemberAddRequest) error {
+func (d *BBoltSystemDriver) AddATeamMemberToProject(ctx context.Context, req *models.TeamMemberAddRequest) error {
 	// For BBolt implementation, we'll store team memberships in a simple way
 	// In production, you might want a separate collection for team memberships
 
@@ -229,7 +229,7 @@ func (d *ProBBoltSystemDriver) AddATeamMemberToProject(ctx context.Context, req 
 	return err
 }
 
-func (d *ProBBoltSystemDriver) CheckTeamMemberExists(ctx context.Context, projectId string, memberID string) error {
+func (d *BBoltSystemDriver) CheckTeamMemberExists(ctx context.Context, projectId string, memberID string) error {
 	collection := d.DB.Collection("team_memberships")
 	var memberships []TeamMembership
 
@@ -250,7 +250,7 @@ func (d *ProBBoltSystemDriver) CheckTeamMemberExists(ctx context.Context, projec
 	return nil
 }
 
-func (d *ProBBoltSystemDriver) RemoveATeamMemberFromProject(ctx context.Context, projectId string, memberID string) error {
+func (d *BBoltSystemDriver) RemoveATeamMemberFromProject(ctx context.Context, projectId string, memberID string) error {
 	collection := d.DB.Collection("team_memberships")
 	var memberships []TeamMembership
 
@@ -272,7 +272,7 @@ func (d *ProBBoltSystemDriver) RemoveATeamMemberFromProject(ctx context.Context,
 	return nil
 }
 
-func (d *ProBBoltSystemDriver) GetTeamsMembers(ctx context.Context, projectId string) ([]*models.SystemUser, error) {
+func (d *BBoltSystemDriver) GetTeamsMembers(ctx context.Context, projectId string) ([]*models.SystemUser, error) {
 	// Get team memberships for the project
 	membershipCollection := d.DB.Collection("team_memberships")
 	var memberships []TeamMembership
@@ -291,31 +291,31 @@ func (d *ProBBoltSystemDriver) GetTeamsMembers(ctx context.Context, projectId st
 	return d.GetSystemUsers(ctx, userIDs)
 }
 
-func (d *ProBBoltSystemDriver) AddTeamMetaInfo(ctx context.Context, docs []*models.SystemUser) ([]*models.SystemUser, error) {
+func (d *BBoltSystemDriver) AddTeamMetaInfo(ctx context.Context, docs []*models.SystemUser) ([]*models.SystemUser, error) {
 	// For BBolt, this is a simple pass-through since we don't have complex metadata resolution
 	return docs, nil
 }
 
 // Organization functions - simplified implementations
 
-func (d *ProBBoltSystemDriver) GetOrganizations(ctx context.Context, userId string) (*models.SearchResponse[models.Organization], error) {
+func (d *BBoltSystemDriver) GetOrganizations(ctx context.Context, userId string) (*models.SearchResponse[models.Organization], error) {
 	// Simplified implementation
 	return &models.SearchResponse[models.Organization]{
 		Results: []*models.Organization{},
 	}, nil
 }
 
-func (d *ProBBoltSystemDriver) FindOrganizationAdmin(ctx context.Context, orgId string) (*models.SystemUser, error) {
+func (d *BBoltSystemDriver) FindOrganizationAdmin(ctx context.Context, orgId string) (*models.SystemUser, error) {
 	// Simplified implementation
 	return nil, errors.New("not implemented")
 }
 
-func (d *ProBBoltSystemDriver) FindUserOrganizations(ctx context.Context, userId string) ([]*models.Organization, error) {
+func (d *BBoltSystemDriver) FindUserOrganizations(ctx context.Context, userId string) ([]*models.Organization, error) {
 	// Simplified implementation
 	return []*models.Organization{}, nil
 }
 
-func (d *ProBBoltSystemDriver) CreateOrganization(ctx context.Context, org *models.Organization) (*models.Organization, error) {
+func (d *BBoltSystemDriver) CreateOrganization(ctx context.Context, org *models.Organization) (*models.Organization, error) {
 	org.ID = utility.NewID()
 	org.XKey = org.ID
 	// Note: Organization model doesn't have CreatedAt/UpdatedAt in the current definition
@@ -329,39 +329,39 @@ func (d *ProBBoltSystemDriver) CreateOrganization(ctx context.Context, org *mode
 	return org, nil
 }
 
-func (d *ProBBoltSystemDriver) AssignTeamToOrganization(ctx context.Context, orgId, userId, teamId string) error {
+func (d *BBoltSystemDriver) AssignTeamToOrganization(ctx context.Context, orgId, userId, teamId string) error {
 	// Simplified implementation
 	return errors.New("not implemented")
 }
 
-func (d *ProBBoltSystemDriver) RemoveATeamFromOrganization(ctx context.Context, orgId, userId, teamId string) error {
+func (d *BBoltSystemDriver) RemoveATeamFromOrganization(ctx context.Context, orgId, userId, teamId string) error {
 	// Simplified implementation
 	return errors.New("not implemented")
 }
 
-func (d *ProBBoltSystemDriver) AssignProjectToOrganization(ctx context.Context, orgId, userId, projectId string) error {
+func (d *BBoltSystemDriver) AssignProjectToOrganization(ctx context.Context, orgId, userId, projectId string) error {
 	// Simplified implementation
 	return errors.New("not implemented")
 }
 
-func (d *ProBBoltSystemDriver) RemoveProjectFromOrganization(ctx context.Context, orgId, userId, projectId string) error {
+func (d *BBoltSystemDriver) RemoveProjectFromOrganization(ctx context.Context, orgId, userId, projectId string) error {
 	// Simplified implementation
 	return errors.New("not implemented")
 }
 
 // Team functions
 
-func (d *ProBBoltSystemDriver) GetTeams(ctx context.Context, userId string) ([]*models.Team, error) {
+func (d *BBoltSystemDriver) GetTeams(ctx context.Context, userId string) ([]*models.Team, error) {
 	// Simplified implementation
 	return []*models.Team{}, nil
 }
 
-func (d *ProBBoltSystemDriver) GetProjectTeams(ctx context.Context, projectId string) (*models.Team, error) {
+func (d *BBoltSystemDriver) GetProjectTeams(ctx context.Context, projectId string) (*models.Team, error) {
 	// Simplified implementation
 	return nil, errors.New("not implemented")
 }
 
-func (d *ProBBoltSystemDriver) CreateTeam(ctx context.Context, team *models.Team) (*models.Team, error) {
+func (d *BBoltSystemDriver) CreateTeam(ctx context.Context, team *models.Team) (*models.Team, error) {
 	team.ID = utility.NewID()
 	team.XKey = team.ID
 	// Note: Team model doesn't have CreatedAt/UpdatedAt in the current definition

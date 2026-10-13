@@ -11,7 +11,7 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/sqlitedialect"
 	"github.com/uptrace/bun/driver/sqliteshim"
-	"gitlab.com/apito.io/open_driver/system/sqlcommon"
+	"github.com/apito-io/open_driver/system/sqlcommon"
 )
 
 func TestApitoFunctionsPersistAndHydrate(t *testing.T) {

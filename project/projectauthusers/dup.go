@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strings"
 
-	"gitlab.com/apito.io/open_driver/system/sqlcommon"
+	"github.com/apito-io/open_driver/system/sqlcommon"
 )
 
 func mapAuthUserUniqueViolation(err error) error {

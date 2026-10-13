@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	qutility "gitlab.com/apito.io/open_driver/utility"
+	qutility "github.com/apito-io/open_driver/utility"
 	"github.com/apito-io/engine/models"
 	"github.com/apito-io/engine/utility"
 	"github.com/apito-io/types"

@@ -14,7 +14,7 @@ import (
 
 // Project-related functions
 
-func (d *ProBBoltSystemDriver) CreateProject(ctx context.Context, userId string, project *models.Project) (*models.Project, error) {
+func (d *BBoltSystemDriver) CreateProject(ctx context.Context, userId string, project *models.Project) (*models.Project, error) {
 
 	// Set timestamps
 	project.CreatedAt = utility.GetCurrentTime()
@@ -41,7 +41,7 @@ func (d *ProBBoltSystemDriver) CreateProject(ctx context.Context, userId string,
 	return project, nil
 }
 
-func (d *ProBBoltSystemDriver) UpdateProject(ctx context.Context, project *models.Project, replace bool) error {
+func (d *BBoltSystemDriver) UpdateProject(ctx context.Context, project *models.Project, replace bool) error {
 	collection := d.DB.Collection("projects")
 	project.UpdatedAt = utility.GetCurrentTime()
 
@@ -79,12 +79,12 @@ func (d *ProBBoltSystemDriver) UpdateProject(ctx context.Context, project *model
 }
 
 // PersistProjectModelTypes is a no-op for BBolt; schema is stored on the project record via UpdateProject.
-func (d *ProBBoltSystemDriver) PersistProjectModelTypes(ctx context.Context, projectID string, schemaModels []*models.ModelType) error {
+func (d *BBoltSystemDriver) PersistProjectModelTypes(ctx context.Context, projectID string, schemaModels []*models.ModelType) error {
 	return nil
 }
 
 // TouchProjectUpdatedAt bumps updated_at on the stored project record.
-func (d *ProBBoltSystemDriver) TouchProjectUpdatedAt(ctx context.Context, projectID string) error {
+func (d *BBoltSystemDriver) TouchProjectUpdatedAt(ctx context.Context, projectID string) error {
 	if projectID == "" {
 		return nil
 	}
@@ -97,7 +97,7 @@ func (d *ProBBoltSystemDriver) TouchProjectUpdatedAt(ctx context.Context, projec
 }
 
 // UpsertModelType merges one model into the project record and saves.
-func (d *ProBBoltSystemDriver) UpsertModelType(ctx context.Context, projectID string, mt *models.ModelType) error {
+func (d *BBoltSystemDriver) UpsertModelType(ctx context.Context, projectID string, mt *models.ModelType) error {
 	if projectID == "" || mt == nil || mt.Name == "" {
 		return nil
 	}
@@ -119,7 +119,7 @@ func (d *ProBBoltSystemDriver) UpsertModelType(ctx context.Context, projectID st
 }
 
 // DeleteModelType removes one model from the embedded schema.
-func (d *ProBBoltSystemDriver) DeleteModelType(ctx context.Context, projectID, modelName string) error {
+func (d *BBoltSystemDriver) DeleteModelType(ctx context.Context, projectID, modelName string) error {
 	if projectID == "" || modelName == "" {
 		return nil
 	}
@@ -140,7 +140,7 @@ func (d *ProBBoltSystemDriver) DeleteModelType(ctx context.Context, projectID, m
 	return d.UpdateProject(ctx, proj, true)
 }
 
-func (d *ProBBoltSystemDriver) GetProject(ctx context.Context, id string) (*models.Project, error) {
+func (d *BBoltSystemDriver) GetProject(ctx context.Context, id string) (*models.Project, error) {
 	var project models.Project
 	collection := d.DB.Collection("projects")
 
@@ -157,7 +157,7 @@ func (d *ProBBoltSystemDriver) GetProject(ctx context.Context, id string) (*mode
 }
 
 
-func (d *ProBBoltSystemDriver) GetProjects(ctx context.Context, keys []string) ([]*models.Project, error) {
+func (d *BBoltSystemDriver) GetProjects(ctx context.Context, keys []string) ([]*models.Project, error) {
 	collection := d.DB.Collection("projects")
 	var projects []*models.Project
 
@@ -171,7 +171,7 @@ func (d *ProBBoltSystemDriver) GetProjects(ctx context.Context, keys []string) (
 	return projects, nil
 }
 
-func (d *ProBBoltSystemDriver) CheckProjectName(ctx context.Context, name string) error {
+func (d *BBoltSystemDriver) CheckProjectName(ctx context.Context, name string) error {
 	collection := d.DB.Collection("projects")
 	var results []models.Project
 
@@ -187,7 +187,7 @@ func (d *ProBBoltSystemDriver) CheckProjectName(ctx context.Context, name string
 	return nil
 }
 
-func (d *ProBBoltSystemDriver) SearchProjects(ctx context.Context, param *models.CommonSystemParams) (*models.SearchResponse[models.Project], error) {
+func (d *BBoltSystemDriver) SearchProjects(ctx context.Context, param *models.CommonSystemParams) (*models.SearchResponse[models.Project], error) {
 	if param == nil {
 		param = &models.CommonSystemParams{}
 	}
@@ -224,7 +224,7 @@ func (d *ProBBoltSystemDriver) SearchProjects(ctx context.Context, param *models
 	}, nil
 }
 
-func (d *ProBBoltSystemDriver) FindUserProjects(ctx context.Context, userId string) ([]*models.Project, error) {
+func (d *BBoltSystemDriver) FindUserProjects(ctx context.Context, userId string) ([]*models.Project, error) {
 	// For BBolt, we'll implement a simple approach where we store user project associations
 	// In a real implementation, you might want to have a separate collection for user-project relationships
 
@@ -248,7 +248,7 @@ func (d *ProBBoltSystemDriver) FindUserProjects(ctx context.Context, userId stri
 	return userProjects, nil
 }
 
-func (d *ProBBoltSystemDriver) FindUserProjectsWithRoles(ctx context.Context, userId string) ([]*models.ProjectWithRoles, error) {
+func (d *BBoltSystemDriver) FindUserProjectsWithRoles(ctx context.Context, userId string) ([]*models.ProjectWithRoles, error) {
 	// Simplified implementation - in production you'd have proper user-project relationship tracking
 	projects, err := d.FindUserProjects(ctx, userId)
 	if err != nil {
@@ -267,7 +267,7 @@ func (d *ProBBoltSystemDriver) FindUserProjectsWithRoles(ctx context.Context, us
 	return projectsWithRoles, nil
 }
 
-func (d *ProBBoltSystemDriver) CheckProjectWithRoles(ctx context.Context, userId, projectId string) (*models.ProjectWithRoles, error) {
+func (d *BBoltSystemDriver) CheckProjectWithRoles(ctx context.Context, userId, projectId string) (*models.ProjectWithRoles, error) {
 	project, err := d.GetProject(ctx, projectId)
 	if err != nil {
 		return nil, err
@@ -297,7 +297,7 @@ func (d *ProBBoltSystemDriver) CheckProjectWithRoles(ctx context.Context, userId
 	}, nil
 }
 
-func (d *ProBBoltSystemDriver) DeleteProjectFromSystem(ctx context.Context, projectId string) error {
+func (d *BBoltSystemDriver) DeleteProjectFromSystem(ctx context.Context, projectId string) error {
 	collection := d.DB.Collection("projects")
 
 	// First check if project exists
@@ -326,7 +326,7 @@ func (d *ProBBoltSystemDriver) DeleteProjectFromSystem(ctx context.Context, proj
 	return nil
 }
 
-func (d *ProBBoltSystemDriver) TransferSchema(ctx context.Context, from, to string) error {
+func (d *BBoltSystemDriver) TransferSchema(ctx context.Context, from, to string) error {
 	fromProject, err := d.GetProject(ctx, from)
 	if err != nil {
 		return err
@@ -346,7 +346,7 @@ func (d *ProBBoltSystemDriver) TransferSchema(ctx context.Context, from, to stri
 }
 
 // ListAllProjects returns all projects (admin only)
-func (d *ProBBoltSystemDriver) ListAllProjects(ctx context.Context, userId string) ([]*models.Project, error) {
+func (d *BBoltSystemDriver) ListAllProjects(ctx context.Context, userId string) ([]*models.Project, error) {
 	// Check if user is super admin
 	collection := d.DB.Collection("projects")
 	var projects []models.Project
@@ -367,7 +367,7 @@ func (d *ProBBoltSystemDriver) ListAllProjects(ctx context.Context, userId strin
 }
 
 // AddSystemUserMetaInfo is deprecated according to interface comments
-func (d *ProBBoltSystemDriver) AddSystemUserMetaInfo(ctx context.Context, doc *types.DefaultDocumentStructure) (*types.DefaultDocumentStructure, error) {
+func (d *BBoltSystemDriver) AddSystemUserMetaInfo(ctx context.Context, doc *types.DefaultDocumentStructure) (*types.DefaultDocumentStructure, error) {
 	// This method is deprecated and replaced by dataloader resolver
 	return doc, nil
 }

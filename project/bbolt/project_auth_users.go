@@ -3,7 +3,7 @@ package bbolt
 import (
 	"context"
 
-	"gitlab.com/apito.io/open_driver/project/projectauthusers"
+	"github.com/apito-io/open_driver/project/projectauthusers"
 	"github.com/apito-io/engine/models"
 )
 

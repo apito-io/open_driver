@@ -5,7 +5,7 @@ import (
 
 	"github.com/apito-io/engine/models"
 	"github.com/apito-io/types"
-	"gitlab.com/apito.io/open_driver/cfd1"
+	"github.com/apito-io/open_driver/cfd1"
 )
 
 // stub methods — expanded incrementally; compile-time interface satisfaction via driver.go + this file.

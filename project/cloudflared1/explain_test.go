@@ -14,7 +14,7 @@ import (
 	"github.com/uptrace/bun/dialect/sqlitedialect"
 	"github.com/uptrace/bun/driver/sqliteshim"
 
-	"gitlab.com/apito.io/open_driver/project/sqlquery"
+	"github.com/apito-io/open_driver/project/sqlquery"
 )
 
 func explainUsesIndex(t *testing.T, ctx context.Context, db *bun.DB, query string, args ...interface{}) {

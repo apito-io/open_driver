@@ -8,7 +8,7 @@ import (
 
 	"github.com/apito-io/engine/models"
 	"github.com/apito-io/engine/utility"
-	"gitlab.com/apito.io/open_driver/project/sqlcommon"
+	"github.com/apito-io/open_driver/project/sqlcommon"
 )
 
 func (d *Driver) CheckTableOrCollectionExists(ctx context.Context, param *models.CommonSystemParams) (bool, error) {

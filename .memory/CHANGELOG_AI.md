@@ -1,5 +1,21 @@
 # open_driver — AI Changelog
 
+## 2026-10-13 — local ports
+
+- **Changed:** Local `.env` uses `SERVE_PORT=5055` and `CORS_ORIGIN=http://localhost:4055`.
+- **Why:** The self-hosted process should match the console on `4055` and the CLI's local engine URL.
+- **Affected:** `pkg/open_driver/.env` only. No driver code changed. Ask before `./command.sh save`.
+
+---
+
+## 2026-10-11 — public D1 catalog and self-hosted binary
+
+- **Changed:** `cloudflared1.RunMigration` no longer creates `pro_projects` or `pro_tenants`. `cmd/oss` injects the public driver, cache, KV, in-process realtime, and a no-op plugin host. Module path stays `github.com/apito-io/open_driver` under Apache 2.0.
+- **Why:** The public driver must build without the private engine. Host catalog tables are a Cloud concern.
+- **Affected:** `system/cloudflared1/system_methods.go`, `cmd/oss`, `factory/plugin_noop.go`, `README.md`. Not tagged. Ask before `./command.sh save`.
+
+---
+
 ## 2026-10-11 — verified relation cardinality migration
 
 - **Changed:** `PreviewRelationCardinality`, `MigrateRelationCardinality`, and `VerifyRelationCardinality` in `sqlquery`. SQL drivers delegate. D1 is unsupported. Mongo and bbolt are metadata-only.

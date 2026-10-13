@@ -21,19 +21,37 @@ const (
 	DefaultAdminPass   = "#ApitoRocks#"
 	AdminFirstName     = "Apito"
 	AdminLastName      = "Admin"
-	StarterProjectID   = "apito_website"
+	StarterProjectID   = "todo_notes"
 	StarterProjectName = "Apito Website"
+	// PreviousStarterProjectID is the starter id used before Todo Notes.
+	// A system database that already has this project keeps it.
+	PreviousStarterProjectID = "apito_website"
 	// OSSStarterSQLiteFile is the SQLite filename (under Config.DefaultDatabaseDir) for the bundled
 	// starter project when SYSTEM_DB_ENGINE=coredb. Not read from PROJECT_DB_* env.
 	OSSStarterSQLiteFile = "apito_starter.sqlite"
 	// StarterMongoDatabaseName is the logical Mongo database for the OSS starter project when the
 	// system database is MongoDB (uses SYSTEM_DB_* connection fields).
-	StarterMongoDatabaseName = "apito_starter_apito_website"
+	StarterMongoDatabaseName = "apito_starter_todo_notes"
 	// StarterPostgresDatabaseName is the physical database for the OSS starter project when the
 	// system database engine is PostgreSQL (uses SYSTEM_DB_* connection as admin; InitProjectBase creates the DB).
-	StarterPostgresDatabaseName = "apito_starter_apito_website"
-	bboltUserNotFound  = "user not found"
+	StarterPostgresDatabaseName = "apito_starter_todo_notes"
+	bboltUserNotFound           = "user not found"
 )
+
+// ExistingStarterProjectID returns the starter row this system database should keep using.
+// A database that already contains the previous starter id does not gain a second project.
+func ExistingStarterProjectID(ctx context.Context, get func(context.Context, string) (*models.Project, error)) string {
+	if get == nil {
+		return StarterProjectID
+	}
+	if project, err := get(ctx, StarterProjectID); err == nil && project != nil && project.ID != "" {
+		return StarterProjectID
+	}
+	if project, err := get(ctx, PreviousStarterProjectID); err == nil && project != nil && project.ID != "" {
+		return PreviousStarterProjectID
+	}
+	return StarterProjectID
+}
 
 // HashDefaultAdminPassword returns a bcrypt hash for the default bootstrap password.
 func HashDefaultAdminPassword() ([]byte, error) {

@@ -1,10 +1,10 @@
 package postgres
 
 import (
-	"gitlab.com/apito.io/open_driver/system/sqlcommon"
+	"github.com/apito-io/open_driver/system/sqlcommon"
 	"context"
 
-	"gitlab.com/apito.io/open_driver/system/driverdefaults"
+	"github.com/apito-io/open_driver/system/driverdefaults"
 	"github.com/apito-io/engine/models"
 )
 

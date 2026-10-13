@@ -9,7 +9,7 @@ import (
 	"github.com/apito-io/engine/models"
 	"github.com/apito-io/engine/utility"
 	"github.com/apito-io/types"
-	"gitlab.com/apito.io/open_driver/project/sqlquery"
+	"github.com/apito-io/open_driver/project/sqlquery"
 )
 
 func (d *Driver) QueryMultiDocumentOfProject(ctx context.Context, param *models.CommonSystemParams) ([]*types.DefaultDocumentStructure, error) {

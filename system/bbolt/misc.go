@@ -9,7 +9,7 @@ import (
 // Misc functions and helper methods
 
 // FindUserTeams retrieves all teams for a given user
-func (d *ProBBoltSystemDriver) FindUserTeams(ctx context.Context, userId string) ([]*models.Team, error) {
+func (d *BBoltSystemDriver) FindUserTeams(ctx context.Context, userId string) ([]*models.Team, error) {
 	// Simplified implementation - in production you'd have proper user-team relationship tracking
 	collection := d.DB.Collection("teams")
 	var teams []models.Team
@@ -30,14 +30,14 @@ func (d *ProBBoltSystemDriver) FindUserTeams(ctx context.Context, userId string)
 }
 
 // ListTeams retrieves teams for a project
-func (d *ProBBoltSystemDriver) ListTeams(ctx context.Context, projectId string) ([]*models.SystemUser, error) {
+func (d *BBoltSystemDriver) ListTeams(ctx context.Context, projectId string) ([]*models.SystemUser, error) {
 	// This function appears to be intended to return team members for a project
 	// Delegating to GetTeamsMembers which implements the same functionality
 	return d.GetTeamsMembers(ctx, projectId)
 }
 
 // Helper function to check if user is team member
-func (d *ProBBoltSystemDriver) isUserTeamMember(ctx context.Context, userId, projectId string) (bool, error) {
+func (d *BBoltSystemDriver) isUserTeamMember(ctx context.Context, userId, projectId string) (bool, error) {
 	collection := d.DB.Collection("team_memberships")
 	var memberships []TeamMembership
 
@@ -56,7 +56,7 @@ func (d *ProBBoltSystemDriver) isUserTeamMember(ctx context.Context, userId, pro
 }
 
 // Helper function to get user permissions for a project
-func (d *ProBBoltSystemDriver) getUserProjectPermissions(ctx context.Context, userId, projectId string) ([]string, error) {
+func (d *BBoltSystemDriver) getUserProjectPermissions(ctx context.Context, userId, projectId string) ([]string, error) {
 	collection := d.DB.Collection("team_memberships")
 	var memberships []TeamMembership
 
@@ -75,7 +75,7 @@ func (d *ProBBoltSystemDriver) getUserProjectPermissions(ctx context.Context, us
 }
 
 // Helper function to validate project access
-func (d *ProBBoltSystemDriver) validateProjectAccess(ctx context.Context, userId, projectId string) error {
+func (d *BBoltSystemDriver) validateProjectAccess(ctx context.Context, userId, projectId string) error {
 	// Check if user has access to the project
 	_, err := d.isUserTeamMember(ctx, userId, projectId)
 	if err != nil {
@@ -86,7 +86,7 @@ func (d *ProBBoltSystemDriver) validateProjectAccess(ctx context.Context, userId
 }
 
 // Helper function to clean up project-related data
-func (d *ProBBoltSystemDriver) cleanupProjectData(ctx context.Context, projectId string) error {
+func (d *BBoltSystemDriver) cleanupProjectData(ctx context.Context, projectId string) error {
 	// Clean up team memberships
 	membershipCollection := d.DB.Collection("team_memberships")
 	var memberships []TeamMembership
@@ -124,7 +124,7 @@ func (d *ProBBoltSystemDriver) cleanupProjectData(ctx context.Context, projectId
 }
 
 // Helper function to ensure database collections are initialized
-func (d *ProBBoltSystemDriver) ensureCollections() error {
+func (d *BBoltSystemDriver) ensureCollections() error {
 	collections := []string{
 		"users",
 		"projects",
@@ -150,7 +150,7 @@ func (d *ProBBoltSystemDriver) ensureCollections() error {
 }
 
 // Helper function to backup database
-func (d *ProBBoltSystemDriver) BackupDatabase(backupPath string) error {
+func (d *BBoltSystemDriver) BackupDatabase(backupPath string) error {
 	// BBolt has built-in backup functionality
 	// This would need to be implemented using BBolt's backup mechanism
 	// For now, return not implemented
@@ -158,7 +158,7 @@ func (d *ProBBoltSystemDriver) BackupDatabase(backupPath string) error {
 }
 
 // Helper function to get database statistics
-func (d *ProBBoltSystemDriver) GetDatabaseStats() (map[string]interface{}, error) {
+func (d *BBoltSystemDriver) GetDatabaseStats() (map[string]interface{}, error) {
 	stats := make(map[string]interface{})
 
 	collections := []string{

@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/apito-io/engine/relationmigrate"
-	"gitlab.com/apito.io/open_driver/project/sqlcommon"
-	"gitlab.com/apito.io/open_driver/project/sqlquery"
+	"github.com/apito-io/open_driver/project/sqlcommon"
+	"github.com/apito-io/open_driver/project/sqlquery"
 )
 
 func (d *Driver) relationMigrateSession(ctx context.Context) (sqlquery.SQLSession, error) {

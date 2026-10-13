@@ -17,7 +17,7 @@ import (
 	"github.com/apito-io/engine/utility"
 )
 
-type ProBBoltSystemDriver struct {
+type BBoltSystemDriver struct {
 	DB          *apitobolt.Store
 	CacheDriver oci.CacheDBInterface
 	dbPath      string
@@ -33,7 +33,7 @@ type MigrationStatus struct {
 	UpdatedAt string `json:"updated_at"`
 }
 
-func GetSystemBBoltDriver(cfg *models.Config, driverCred *models.DriverCredentials, cacheDriver oci.CacheDBInterface) (*ProBBoltSystemDriver, error) {
+func GetSystemBBoltDriver(cfg *models.Config, driverCred *models.DriverCredentials, cacheDriver oci.CacheDBInterface) (*BBoltSystemDriver, error) {
 	dbPath := filepath.Join(cfg.DefaultDatabaseDir, cfg.SystemDBName)
 
 	// Expand path (handles ~ and converts to absolute path)
@@ -57,7 +57,7 @@ func GetSystemBBoltDriver(cfg *models.Config, driverCred *models.DriverCredentia
 		return nil, fmt.Errorf("failed to open BBolt database at %s: %v", dbPath, err)
 	}
 
-	driver := &ProBBoltSystemDriver{
+	driver := &BBoltSystemDriver{
 		DB:          store,
 		CacheDriver: cacheDriver,
 		dbPath:      dbPath,
@@ -71,12 +71,12 @@ func GetSystemBBoltDriver(cfg *models.Config, driverCred *models.DriverCredentia
 	return driver, nil
 }
 
-func (d *ProBBoltSystemDriver) Close() error {
+func (d *BBoltSystemDriver) Close() error {
 	return d.DB.Close()
 }
 
 // checkMigrationStatus checks if migration has been completed
-func (d *ProBBoltSystemDriver) checkMigrationStatus(ctx context.Context) (bool, error) {
+func (d *BBoltSystemDriver) checkMigrationStatus(ctx context.Context) (bool, error) {
 	// First ensure the migrations collection exists
 	migrationsCollection := d.DB.Collection("migrations")
 	if err := migrationsCollection.Init(); err != nil {
@@ -109,7 +109,7 @@ func (d *ProBBoltSystemDriver) checkMigrationStatus(ctx context.Context) (bool, 
 }
 
 // markMigrationCompleted marks the migration as completed
-func (d *ProBBoltSystemDriver) markMigrationCompleted(ctx context.Context) error {
+func (d *BBoltSystemDriver) markMigrationCompleted(ctx context.Context) error {
 	migrationsCollection := d.DB.Collection("migrations")
 
 	migrationStatus := MigrationStatus{
@@ -125,7 +125,7 @@ func (d *ProBBoltSystemDriver) markMigrationCompleted(ctx context.Context) error
 }
 
 // RunMigration creates the necessary collections/buckets for the system with migration tracking
-func (d *ProBBoltSystemDriver) RunMigration(ctx context.Context) error {
+func (d *BBoltSystemDriver) RunMigration(ctx context.Context) error {
 	// Check if migration has already been completed
 	migrationCompleted, err := d.checkMigrationStatus(ctx)
 	if err != nil {

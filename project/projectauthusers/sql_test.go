@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"testing"
 
-	"gitlab.com/apito.io/open_driver/project/projectauthusers"
+	"github.com/apito-io/open_driver/project/projectauthusers"
 	"github.com/apito-io/engine/models"
 	"github.com/stretchr/testify/require"
 	"github.com/uptrace/bun"

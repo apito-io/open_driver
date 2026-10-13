@@ -11,7 +11,7 @@ import (
 
 // Webhook-related functions
 
-func (d *ProBBoltSystemDriver) AddWebhookToProject(ctx context.Context, doc *models.Webhook) (*models.Webhook, error) {
+func (d *BBoltSystemDriver) AddWebhookToProject(ctx context.Context, doc *models.Webhook) (*models.Webhook, error) {
 	doc.ID = utility.NewID()
 	doc.XKey = doc.ID
 	// Note: Webhook model doesn't have CreatedAt/UpdatedAt in the current definition
@@ -25,7 +25,7 @@ func (d *ProBBoltSystemDriver) AddWebhookToProject(ctx context.Context, doc *mod
 	return doc, nil
 }
 
-func (d *ProBBoltSystemDriver) GetWebHook(ctx context.Context, projectId, hookId string) (*models.Webhook, error) {
+func (d *BBoltSystemDriver) GetWebHook(ctx context.Context, projectId, hookId string) (*models.Webhook, error) {
 	var webhook models.Webhook
 	collection := d.DB.Collection("webhooks")
 
@@ -42,7 +42,7 @@ func (d *ProBBoltSystemDriver) GetWebHook(ctx context.Context, projectId, hookId
 	return &webhook, nil
 }
 
-func (d *ProBBoltSystemDriver) DeleteWebhook(ctx context.Context, projectId, hookId string) error {
+func (d *BBoltSystemDriver) DeleteWebhook(ctx context.Context, projectId, hookId string) error {
 	// First verify the webhook exists and belongs to the project
 	webhook, err := d.GetWebHook(ctx, projectId, hookId)
 	if err != nil {
@@ -53,7 +53,7 @@ func (d *ProBBoltSystemDriver) DeleteWebhook(ctx context.Context, projectId, hoo
 	return collection.DeleteStruct(webhook)
 }
 
-func (d *ProBBoltSystemDriver) SearchWebHooks(ctx context.Context, param *models.CommonSystemParams) (*models.SearchResponse[models.Webhook], error) {
+func (d *BBoltSystemDriver) SearchWebHooks(ctx context.Context, param *models.CommonSystemParams) (*models.SearchResponse[models.Webhook], error) {
 	collection := d.DB.Collection("webhooks")
 	var webhooks []models.Webhook
 
@@ -87,7 +87,7 @@ func (d *ProBBoltSystemDriver) SearchWebHooks(ctx context.Context, param *models
 
 // Audit log-related functions
 
-func (d *ProBBoltSystemDriver) SaveAuditLog(ctx context.Context, auditLog *models.AuditLogs) error {
+func (d *BBoltSystemDriver) SaveAuditLog(ctx context.Context, auditLog *models.AuditLogs) error {
 	auditLog.XKey = utility.NewID()
 	auditLog.ID = auditLog.XKey
 	auditLog.CreatedAt = utility.GetCurrentTime()
@@ -97,7 +97,7 @@ func (d *ProBBoltSystemDriver) SaveAuditLog(ctx context.Context, auditLog *model
 	return err
 }
 
-func (d *ProBBoltSystemDriver) SearchAuditLogs(ctx context.Context, param *models.CommonSystemParams) (*models.SearchResponse[models.AuditLogs], error) {
+func (d *BBoltSystemDriver) SearchAuditLogs(ctx context.Context, param *models.CommonSystemParams) (*models.SearchResponse[models.AuditLogs], error) {
 	collection := d.DB.Collection("audit_logs")
 	var auditLogs []models.AuditLogs
 
@@ -143,7 +143,7 @@ func (d *ProBBoltSystemDriver) SearchAuditLogs(ctx context.Context, param *model
 
 // Token-related functions
 
-func (d *ProBBoltSystemDriver) CheckTokenBlacklisted(ctx context.Context, tokenId string) error {
+func (d *BBoltSystemDriver) CheckTokenBlacklisted(ctx context.Context, tokenId string) error {
 	var token map[string]interface{}
 	collection := d.DB.Collection("token_blacklist")
 
@@ -156,7 +156,7 @@ func (d *ProBBoltSystemDriver) CheckTokenBlacklisted(ctx context.Context, tokenI
 	return nil
 }
 
-func (d *ProBBoltSystemDriver) BlacklistAToken(ctx context.Context, token map[string]interface{}) error {
+func (d *BBoltSystemDriver) BlacklistAToken(ctx context.Context, token map[string]interface{}) error {
 	collection := d.DB.Collection("token_blacklist")
 
 	// Set the token ID as the key for easy lookup
@@ -170,7 +170,7 @@ func (d *ProBBoltSystemDriver) BlacklistAToken(ctx context.Context, token map[st
 
 // Raw data-related functions
 
-func (d *ProBBoltSystemDriver) SaveRawData(ctx context.Context, collectionName string, data map[string]interface{}) error {
+func (d *BBoltSystemDriver) SaveRawData(ctx context.Context, collectionName string, data map[string]interface{}) error {
 	collection := d.DB.Collection(collectionName)
 
 	// Generate ID if not present
@@ -187,7 +187,7 @@ func (d *ProBBoltSystemDriver) SaveRawData(ctx context.Context, collectionName s
 
 // Function-related operations
 
-func (d *ProBBoltSystemDriver) SearchFunctions(ctx context.Context, param *models.CommonSystemParams) (*models.SearchResponse[models.ApitoFunction], error) {
+func (d *BBoltSystemDriver) SearchFunctions(ctx context.Context, param *models.CommonSystemParams) (*models.SearchResponse[models.ApitoFunction], error) {
 	// Get the project first
 	project, err := d.GetProject(ctx, param.ProjectID)
 	if err != nil {

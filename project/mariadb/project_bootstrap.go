@@ -1,7 +1,7 @@
 package mariadb
 
 import (
-	"gitlab.com/apito.io/open_driver/project/sqlcommon"
+	"github.com/apito-io/open_driver/project/sqlcommon"
 	"context"
 	"errors"
 	"fmt"

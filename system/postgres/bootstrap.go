@@ -1,16 +1,16 @@
 package postgres
 
 import (
-	"gitlab.com/apito.io/open_driver/system/sqlcommon"
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/apito-io/open_driver/system/sqlcommon"
 	"log"
 
-	"gitlab.com/apito.io/open_driver/system/bootstrapmeta"
 	"github.com/apito-io/engine/models"
 	"github.com/apito-io/engine/utility"
+	"github.com/apito-io/open_driver/system/bootstrapmeta"
 )
 
 func (d *Driver) ensureBootstrapAdmin(ctx context.Context) error {
@@ -79,27 +79,30 @@ func (d *Driver) EnsureBootstrapOrgTeamProjectWithStarterCreate(ctx context.Cont
 		return nil
 	}
 
-	if _, err := d.GetProject(ctx, bootstrapmeta.StarterProjectID); err != nil {
-		if !errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("bootstrap GetProject: %w", err)
-		}
-		if fn == nil {
-			return fmt.Errorf("bootstrap: starter project create fn is nil")
-		}
-		proj := &models.Project{
-			ID:          bootstrapmeta.StarterProjectID,
-			Name:        bootstrapmeta.StarterProjectName,
-			Description: "Starter project",
-		}
-		if err := fn(ctx, user.ID, proj); err != nil {
-			return fmt.Errorf("bootstrap create starter project: %w", err)
+	starterID := bootstrapmeta.ExistingStarterProjectID(ctx, d.GetProject)
+	if starterID == bootstrapmeta.StarterProjectID {
+		if _, err := d.GetProject(ctx, starterID); err != nil {
+			if !errors.Is(err, sql.ErrNoRows) {
+				return fmt.Errorf("bootstrap GetProject: %w", err)
+			}
+			if fn == nil {
+				return fmt.Errorf("bootstrap: starter project create fn is nil")
+			}
+			proj := &models.Project{
+				ID:          starterID,
+				Name:        bootstrapmeta.StarterProjectName,
+				Description: "Starter project",
+			}
+			if err := fn(ctx, user.ID, proj); err != nil {
+				return fmt.Errorf("bootstrap create starter project: %w", err)
+			}
 		}
 	}
 
-	if err := d.ensureProjectSchemaRow(ctx, bootstrapmeta.StarterProjectID); err != nil {
+	if err := d.ensureProjectSchemaRow(ctx, starterID); err != nil {
 		return err
 	}
-	if err := d.ensureProjectSettingsRow(ctx, bootstrapmeta.StarterProjectID); err != nil {
+	if err := d.ensureProjectSettingsRow(ctx, starterID); err != nil {
 		return err
 	}
 	log.Println("system bootstrap: starter project linked (SQL)")
@@ -186,10 +189,11 @@ func (d *Driver) ensureProjectSettingsRow(ctx context.Context, projectID string)
 // ensureStarterProjectDriver backfills driver_credentials for the starter project when config is present
 // (e.g. user already had default org/team and ensureBootstrapOrgTeamProject returned early).
 func (d *Driver) ensureStarterProjectDriver(ctx context.Context) error {
-	if err := d.ensureProjectDriverCredentials(ctx, bootstrapmeta.StarterProjectID); err != nil {
+	starterID := bootstrapmeta.ExistingStarterProjectID(ctx, d.GetProject)
+	if err := d.ensureProjectDriverCredentials(ctx, starterID); err != nil {
 		return fmt.Errorf("bootstrap starter project driver: %w", err)
 	}
-	if err := d.ensureProjectSettingsRow(ctx, bootstrapmeta.StarterProjectID); err != nil {
+	if err := d.ensureProjectSettingsRow(ctx, starterID); err != nil {
 		return fmt.Errorf("bootstrap starter project settings: %w", err)
 	}
 	return nil

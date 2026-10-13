@@ -1,14 +1,12 @@
-module gitlab.com/apito.io/open_driver/cmd/oss
+module github.com/apito-io/open_driver/cmd/oss
 
 go 1.25.4
 
 require (
 	github.com/apito-io/engine v0.0.0
+	github.com/apito-io/open_driver v0.0.0
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/joho/godotenv v1.5.1
-	gitlab.com/apito.io/nats_system v0.0.0
-	gitlab.com/apito.io/open_driver v0.0.0
-	gitlab.com/apito.io/plugin_system v0.0.0
 )
 
 require (
@@ -22,7 +20,6 @@ require (
 	github.com/PuerkitoBio/goquery v1.10.3 // indirect
 	github.com/RashadAnsari/go-batch/v2 v2.1.0 // indirect
 	github.com/andybalholm/cascadia v1.3.3 // indirect
-	github.com/antithesishq/antithesis-sdk-go v0.7.0-default-no-op // indirect
 	github.com/apito-io/apitoBolt v0.1.2 // indirect
 	github.com/apito-io/oas v1.2.3 // indirect
 	github.com/apito-io/types v0.1.4 // indirect
@@ -69,7 +66,6 @@ require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
-	github.com/google/go-tpm v0.9.8 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect
@@ -96,19 +92,12 @@ require (
 	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/liangyaopei/structmap v0.0.0-20200911074950-0e2911025a96 // indirect
-	github.com/machinebox/graphql v0.2.2 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-sqlite3 v1.14.28 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.27 // indirect
-	github.com/minio/highwayhash v1.0.4 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
-	github.com/nats-io/jwt/v2 v2.8.2 // indirect
-	github.com/nats-io/nats-server/v2 v2.14.2 // indirect
-	github.com/nats-io/nats.go v1.52.0 // indirect
-	github.com/nats-io/nkeys v0.4.16 // indirect
-	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/nitishm/go-rejson/v4 v4.2.0 // indirect
 	github.com/oklog/run v1.2.0 // indirect
@@ -117,15 +106,16 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/pierrec/xxHash v0.1.5 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pquerna/cachecontrol v0.2.0 // indirect
 	github.com/puzpuzpuz/xsync/v3 v3.5.1 // indirect
 	github.com/redis/go-redis/v9 v9.12.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/sosodev/duration v1.3.1 // indirect
+	github.com/syumai/workers v0.33.0 // indirect
 	github.com/tailor-platform/graphql v1.0.1 // indirect
 	github.com/teivah/onecontext v1.3.0 // indirect
+	github.com/tetratelabs/wazero v1.9.0 // indirect
 	github.com/tmthrgd/go-hex v0.0.0-20190904060850-447a3041c3bc // indirect
 	github.com/tomogoma/generator v0.0.0-20171014125632-4398aab4dd41 // indirect
 	github.com/tomogoma/go-api-guard v0.0.0-20180312041446-a2bad766ec64 // indirect
@@ -168,7 +158,6 @@ require (
 	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/sys v0.45.0 // indirect
 	golang.org/x/text v0.37.0 // indirect
-	golang.org/x/time v0.15.0 // indirect
 	google.golang.org/api v0.240.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250715232539-7130f93afb79 // indirect
 	google.golang.org/grpc v1.73.0 // indirect
@@ -184,10 +173,6 @@ require (
 	olympos.io/encoding/edn v0.0.0-20201019073823-d3554ca0b0a3 // indirect
 )
 
-replace github.com/apito-io/engine => ../../../engine/open-core
+replace github.com/apito-io/engine => ../../../open-core
 
-replace gitlab.com/apito.io/open_driver => ../..
-
-replace gitlab.com/apito.io/nats_system => ../../../nats_system
-
-replace gitlab.com/apito.io/plugin_system => ../../../plugin_system
+replace github.com/apito-io/open_driver => ../..

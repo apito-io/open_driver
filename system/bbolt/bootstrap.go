@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"log"
 
-	"gitlab.com/apito.io/open_driver/system/bootstrapmeta"
 	"github.com/apito-io/engine/models"
 	"github.com/apito-io/engine/utility"
+	"github.com/apito-io/open_driver/system/bootstrapmeta"
 )
 
 // EnsureSystemBootstrap creates default admin, then default team/org/project via junction collections.
-func (d *ProBBoltSystemDriver) EnsureSystemBootstrap(ctx context.Context) error {
+func (d *BBoltSystemDriver) EnsureSystemBootstrap(ctx context.Context) error {
 	if err := d.ensureBootstrapAdmin(ctx); err != nil {
 		return err
 	}
@@ -21,7 +21,7 @@ func (d *ProBBoltSystemDriver) EnsureSystemBootstrap(ctx context.Context) error 
 	return d.ensureBootstrapOrgTeamProject(ctx)
 }
 
-func (d *ProBBoltSystemDriver) ensureBootstrapAdmin(ctx context.Context) error {
+func (d *BBoltSystemDriver) ensureBootstrapAdmin(ctx context.Context) error {
 	email := bootstrapmeta.BootstrapAdminEmail()
 	u, err := d.GetSystemUserByEmail(ctx, email)
 	if err != nil && !bootstrapmeta.IsUserLookupMiss(err) {
@@ -63,7 +63,7 @@ func (d *ProBBoltSystemDriver) ensureBootstrapAdmin(ctx context.Context) error {
 	return nil
 }
 
-func (d *ProBBoltSystemDriver) ensureBootstrapOrgTeamProject(ctx context.Context) error {
+func (d *BBoltSystemDriver) ensureBootstrapOrgTeamProject(ctx context.Context) error {
 	user, err := d.GetSystemUserByEmail(ctx, bootstrapmeta.BootstrapAdminEmail())
 	if err != nil && !bootstrapmeta.IsUserLookupMiss(err) {
 		return fmt.Errorf("bootstrap: load admin for starter project: %w", err)
@@ -72,12 +72,17 @@ func (d *ProBBoltSystemDriver) ensureBootstrapOrgTeamProject(ctx context.Context
 		return nil
 	}
 
+	starterID := bootstrapmeta.ExistingStarterProjectID(ctx, d.GetProject)
+	if starterID == bootstrapmeta.PreviousStarterProjectID {
+		log.Println("system bootstrap: starter project linked (bBolt)")
+		return nil
+	}
 	proj := &models.Project{
-		ID:          bootstrapmeta.StarterProjectID,
+		ID:          starterID,
 		Name:        bootstrapmeta.StarterProjectName,
 		Description: "Starter project",
 	}
-	if _, err := d.GetProject(ctx, bootstrapmeta.StarterProjectID); err != nil {
+	if _, err := d.GetProject(ctx, starterID); err != nil {
 		if _, err := d.CreateProject(ctx, user.ID, proj); err != nil {
 			return fmt.Errorf("bootstrap create starter project: %w", err)
 		}

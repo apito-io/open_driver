@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/apito-io/engine/models"
-	"gitlab.com/apito.io/open_driver/cfd1"
+	"github.com/apito-io/open_driver/cfd1"
 )
 
 type l1Entry struct {

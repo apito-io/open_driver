@@ -6,7 +6,7 @@ import (
 
 	_const "github.com/apito-io/engine/const"
 	"github.com/apito-io/engine/models"
-	qutility "gitlab.com/apito.io/open_driver/utility"
+	qutility "github.com/apito-io/open_driver/utility"
 )
 
 func isFilterComparator(key string) bool {

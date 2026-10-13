@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/apito.io/open_driver/system/bootstrapmeta"
-	"gitlab.com/apito.io/open_driver/system/sqlcommon"
+	"github.com/apito-io/open_driver/system/bootstrapmeta"
+	"github.com/apito-io/open_driver/system/sqlcommon"
 	"github.com/apito-io/engine/models"
 	"github.com/apito-io/types/protobuff"
 	"github.com/stretchr/testify/require"

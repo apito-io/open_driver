@@ -6,7 +6,7 @@ import (
 	"time"
 
 	_const "github.com/apito-io/engine/const"
-	"gitlab.com/apito.io/open_driver/project/sqlcommon"
+	"github.com/apito-io/open_driver/project/sqlcommon"
 	"github.com/apito-io/engine/models"
 	"github.com/uptrace/bun"
 )

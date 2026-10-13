@@ -7,8 +7,8 @@ import (
 	"github.com/apito-io/engine/interfaces"
 	"github.com/apito-io/engine/models"
 	"github.com/uptrace/bun/dialect"
-	"gitlab.com/apito.io/open_driver/system/bootstrapmeta"
-	"gitlab.com/apito.io/open_driver/system/sqlcommon"
+	"github.com/apito-io/open_driver/system/bootstrapmeta"
+	"github.com/apito-io/open_driver/system/sqlcommon"
 )
 
 type Driver struct {

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/apito-io/engine/models"
-	"gitlab.com/apito.io/open_driver/project/sqlquery"
+	"github.com/apito-io/open_driver/project/sqlquery"
 )
 
 func (d *Driver) ApplyUniqueKeyDDL(ctx context.Context, modelsList []*models.ModelType, drops []models.UniqueIndexDrop) error {

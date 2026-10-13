@@ -7,10 +7,10 @@ import (
 	"strings"
 
 	_const "github.com/apito-io/engine/const"
-	"gitlab.com/apito.io/open_driver/project/mariadb"
-	"gitlab.com/apito.io/open_driver/project/mysql"
-	"gitlab.com/apito.io/open_driver/project/postgres"
-	"gitlab.com/apito.io/open_driver/project/sqlite"
+	"github.com/apito-io/open_driver/project/mariadb"
+	"github.com/apito-io/open_driver/project/mysql"
+	"github.com/apito-io/open_driver/project/postgres"
+	"github.com/apito-io/open_driver/project/sqlite"
 	"github.com/apito-io/engine/interfaces"
 	"github.com/apito-io/engine/models"
 )

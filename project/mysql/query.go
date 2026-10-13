@@ -16,7 +16,7 @@ import (
 	"github.com/apito-io/types"
 	"github.com/tailor-platform/graphql"
 	"github.com/uptrace/bun"
-	"gitlab.com/apito.io/open_driver/project/sqlquery"
+	"github.com/apito-io/open_driver/project/sqlquery"
 )
 
 func (d *Driver) maybeEnsureRelationDDL(ctx context.Context, param *models.CommonSystemParams) error {

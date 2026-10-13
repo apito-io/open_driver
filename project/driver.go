@@ -11,9 +11,9 @@ func GetProjectDriver(engineConfig *models.DriverCredentials, cfg *models.Config
 
 func GetProjectDriverWithConfig(conf *models.Config, engineConfig *models.DriverCredentials, proExtras interface{}) (interfaces.ProjectDBInterface, error) {
 	if conf != nil && conf.DriverFactory != nil {
-		if pf, ok := conf.DriverFactory.(interfaces.ProProjectDriverFactory); ok {
+		if pf, ok := conf.DriverFactory.(interfaces.ProjectDriverExtrasFactory); ok {
 			if pf.SupportsEngine(engineConfig.Engine) {
-				return pf.CreateProjectDriverWithProExtras(conf, engineConfig, proExtras)
+				return pf.CreateProjectDriverWithExtras(conf, engineConfig, proExtras)
 			}
 		}
 		if factory, ok := conf.DriverFactory.(interfaces.DatabaseDriverFactory); ok {

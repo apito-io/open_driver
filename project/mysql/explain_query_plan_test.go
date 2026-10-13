@@ -15,8 +15,8 @@ import (
 	"github.com/uptrace/bun/dialect/sqlitedialect"
 	"github.com/uptrace/bun/driver/sqliteshim"
 
-	sysdriver "gitlab.com/apito.io/open_driver/system/sqlite"
-	"gitlab.com/apito.io/open_driver/system/sqlcommon"
+	sysdriver "github.com/apito-io/open_driver/system/sqlite"
+	"github.com/apito-io/open_driver/system/sqlcommon"
 )
 
 func explainDetailContainsUsingIndex(t *testing.T, ctx context.Context, db *bun.DB, query string, args ...interface{}) string {

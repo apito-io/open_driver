@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"gitlab.com/apito.io/open_driver/system/sqlcommon"
+	"github.com/apito-io/open_driver/system/sqlcommon"
 	"time"
 
 	ae "github.com/apito-io/engine/err"
@@ -12,7 +12,7 @@ import (
 	"github.com/apito-io/engine/utility"
 	"github.com/apito-io/types"
 	"github.com/uptrace/bun"
-	"gitlab.com/apito.io/open_driver/system/driverdefaults"
+	"github.com/apito-io/open_driver/system/driverdefaults"
 )
 
 // GetProject retrieves a project by ID using SQL

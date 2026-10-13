@@ -7,10 +7,10 @@ import (
 	"log"
 	"strings"
 
-	"gitlab.com/apito.io/open_driver/system/bootstrapmeta"
-	"gitlab.com/apito.io/open_driver/system/driverdefaults"
 	"github.com/apito-io/engine/models"
 	"github.com/apito-io/engine/utility"
+	"github.com/apito-io/open_driver/system/bootstrapmeta"
+	"github.com/apito-io/open_driver/system/driverdefaults"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
@@ -120,9 +120,14 @@ func (m *SystemMongoDriver) ensureBootstrapOrgTeamProject(ctx context.Context) e
 		return nil
 	}
 
-	if _, err := m.GetProject(ctx, bootstrapmeta.StarterProjectID); err != nil {
+	starterID := bootstrapmeta.ExistingStarterProjectID(ctx, m.GetProject)
+	if starterID == bootstrapmeta.PreviousStarterProjectID {
+		log.Println("system bootstrap: starter project linked (Mongo)")
+		return nil
+	}
+	if _, err := m.GetProject(ctx, starterID); err != nil {
 		proj := &models.Project{
-			ID:          bootstrapmeta.StarterProjectID,
+			ID:          starterID,
 			Name:        bootstrapmeta.StarterProjectName,
 			Description: "Starter project",
 		}

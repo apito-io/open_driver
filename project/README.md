@@ -26,12 +26,13 @@ The Apito Engine supports multiple database systems through a unified interface 
 
 ### Supported Database Types
 
-Currently implemented drivers:
+Public drivers in this module:
 
-- **Document Stores**: MongoDB, Firestore, Couchbase
-- **Relational**: SQL (PostgreSQL/MySQL), Oracle, MariaDB
-- **Column-Family**: Cassandra
-- **Key-Value**: BadgerDB, DynamoDB
+- **Relational**: PostgreSQL, MySQL, MariaDB, SQLite
+- **Document**: MongoDB
+- **Embedded**: BBolt
+
+Cache and key-value helpers ship beside those drivers. Realtime defaults to an in-process bus. Other engines are supplied by a host binary and are not part of this module.
 
 ## Driver Structure
 

@@ -1,4 +1,4 @@
-module gitlab.com/apito.io/open_driver
+module github.com/apito-io/open_driver
 
 go 1.25.4
 

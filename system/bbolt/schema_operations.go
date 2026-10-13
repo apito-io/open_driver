@@ -11,7 +11,7 @@ import (
 
 const schemaOperationsCollection = "schema_operations"
 
-func (d *ProBBoltSystemDriver) CreateSchemaOperation(ctx context.Context, op *models.SchemaOperation) error {
+func (d *BBoltSystemDriver) CreateSchemaOperation(ctx context.Context, op *models.SchemaOperation) error {
 	_ = ctx
 	if d == nil || d.DB == nil || op == nil {
 		return fmt.Errorf("create schema operation: invalid input")
@@ -23,7 +23,7 @@ func (d *ProBBoltSystemDriver) CreateSchemaOperation(ctx context.Context, op *mo
 	return err
 }
 
-func (d *ProBBoltSystemDriver) UpdateSchemaOperation(ctx context.Context, op *models.SchemaOperation) error {
+func (d *BBoltSystemDriver) UpdateSchemaOperation(ctx context.Context, op *models.SchemaOperation) error {
 	_ = ctx
 	if d == nil || d.DB == nil || op == nil || op.ID == "" {
 		return fmt.Errorf("update schema operation: invalid input")
@@ -31,7 +31,7 @@ func (d *ProBBoltSystemDriver) UpdateSchemaOperation(ctx context.Context, op *mo
 	return d.DB.Collection(schemaOperationsCollection).Update(op)
 }
 
-func (d *ProBBoltSystemDriver) GetSchemaOperation(ctx context.Context, id string) (*models.SchemaOperation, error) {
+func (d *BBoltSystemDriver) GetSchemaOperation(ctx context.Context, id string) (*models.SchemaOperation, error) {
 	_ = ctx
 	if id == "" {
 		return nil, fmt.Errorf("get schema operation: id required")
@@ -43,7 +43,7 @@ func (d *ProBBoltSystemDriver) GetSchemaOperation(ctx context.Context, id string
 	return &op, nil
 }
 
-func (d *ProBBoltSystemDriver) ListSchemaOperationsByStatus(ctx context.Context, projectID string, statuses []string, limit int) ([]*models.SchemaOperation, error) {
+func (d *BBoltSystemDriver) ListSchemaOperationsByStatus(ctx context.Context, projectID string, statuses []string, limit int) ([]*models.SchemaOperation, error) {
 	_ = ctx
 	if limit <= 0 {
 		limit = 50

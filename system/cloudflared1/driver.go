@@ -7,7 +7,7 @@ import (
 
 	"github.com/apito-io/engine/interfaces"
 	"github.com/apito-io/engine/models"
-	"gitlab.com/apito.io/open_driver/cfd1"
+	"github.com/apito-io/open_driver/cfd1"
 )
 
 // Driver is the Cloudflare D1 system (control-plane) driver.

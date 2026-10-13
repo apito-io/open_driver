@@ -7,7 +7,7 @@ import (
 	"github.com/apito-io/engine/models"
 )
 
-// CredentialsJSON is persisted in pro_tenants.driver_credentials_json for scoped D1 DBs.
+// CredentialsJSON is persisted with scoped D1 database credentials.
 type CredentialsJSON struct {
 	Engine     string `json:"engine"`
 	DatabaseID string `json:"database_id"`
@@ -30,7 +30,7 @@ func ConfigFromCredentials(cred *models.DriverCredentials, accountID, apiToken s
 	}, nil
 }
 
-// ParseScopedCredentialsJSON unmarshals tenant scoped creds from pro_tenants.
+// ParseScopedCredentialsJSON unmarshals scoped database credentials.
 func ParseScopedCredentialsJSON(raw string) (*models.DriverCredentials, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
@@ -51,7 +51,7 @@ func ParseScopedCredentialsJSON(raw string) (*models.DriverCredentials, error) {
 	}, nil
 }
 
-// MarshalScopedCredentials returns JSON for pro_tenants.driver_credentials_json.
+// MarshalScopedCredentials returns JSON for scoped database credentials.
 func MarshalScopedCredentials(databaseID string) (string, error) {
 	b, err := json.Marshal(CredentialsJSON{
 		Engine:     EngineName,

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	ae "github.com/apito-io/engine/err"
-	"gitlab.com/apito.io/open_driver/system/driverdefaults"
+	"github.com/apito-io/open_driver/system/driverdefaults"
 	"github.com/apito-io/engine/models"
 	"github.com/apito-io/engine/utility"
 	"github.com/apito-io/types"

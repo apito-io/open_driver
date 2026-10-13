@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"gitlab.com/apito.io/open_driver/project/sqlcommon"
+	"github.com/apito-io/open_driver/project/sqlcommon"
 
 	"github.com/apito-io/engine/models"
 	"github.com/apito-io/engine/utility"

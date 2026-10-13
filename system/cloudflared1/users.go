@@ -10,7 +10,7 @@ import (
 
 	"github.com/apito-io/engine/models"
 	"github.com/apito-io/engine/utility"
-	"gitlab.com/apito.io/open_driver/system/bootstrapmeta"
+	"github.com/apito-io/open_driver/system/bootstrapmeta"
 )
 
 func rowToSystemUser(row map[string]any) (*models.SystemUser, error) {

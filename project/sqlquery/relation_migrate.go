@@ -10,7 +10,7 @@ import (
 	"github.com/apito-io/engine/relationmigrate"
 	"github.com/apito-io/engine/utility"
 	"github.com/uptrace/bun"
-	"gitlab.com/apito.io/open_driver/project/sqlcommon"
+	"github.com/apito-io/open_driver/project/sqlcommon"
 )
 
 // SQLSession is the dialect-neutral executor used by every SQL project driver.

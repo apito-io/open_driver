@@ -9,7 +9,7 @@ import (
 	"github.com/apito-io/engine/models"
 )
 
-func TestProBBoltSystemDriver_Basic(t *testing.T) {
+func TestBBoltSystemDriver_Basic(t *testing.T) {
 	// Create a temporary database for testing
 	tmpDb := "test_apito_system.db"
 	defer os.Remove(tmpDb)
@@ -139,7 +139,7 @@ func TestProBBoltSystemDriver_Basic(t *testing.T) {
 	}
 }
 
-func TestProBBoltSystemDriver_Migration(t *testing.T) {
+func TestBBoltSystemDriver_Migration(t *testing.T) {
 	// Create a temporary database for testing
 	tmpDb := "test_apito_migration.db"
 	defer os.Remove(tmpDb)

@@ -5,7 +5,7 @@ import (
 	"log"
 
 	_const "github.com/apito-io/engine/const"
-	sharedRedis "gitlab.com/apito.io/open_driver/shared/redis"
+	sharedRedis "github.com/apito-io/open_driver/shared/redis"
 	"github.com/apito-io/engine/interfaces"
 	"github.com/apito-io/engine/models"
 )

@@ -7,7 +7,7 @@ import (
 
 	"github.com/apito-io/engine/models"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/apito.io/open_driver/system/sqlcommon"
+	"github.com/apito-io/open_driver/system/sqlcommon"
 )
 
 func TestNormalizeAllProjectPlanSystemFlags(t *testing.T) {

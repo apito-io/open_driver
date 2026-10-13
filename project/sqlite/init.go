@@ -6,7 +6,7 @@ import (
 	_const "github.com/apito-io/engine/const"
 	"github.com/apito-io/engine/interfaces"
 	"github.com/apito-io/engine/models"
-	"gitlab.com/apito.io/open_driver/project/sqlcommon"
+	"github.com/apito-io/open_driver/project/sqlcommon"
 )
 
 // Driver is the SQLite project SQL driver.

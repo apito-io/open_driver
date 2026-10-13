@@ -6,8 +6,8 @@ import (
 
 	"github.com/apito-io/engine/models"
 	"github.com/apito-io/engine/utility"
-	"gitlab.com/apito.io/open_driver/project/sqlcommon"
-	"gitlab.com/apito.io/open_driver/project/sqlquery"
+	"github.com/apito-io/open_driver/project/sqlcommon"
+	"github.com/apito-io/open_driver/project/sqlquery"
 )
 
 func (d *Driver) AddRelationFields(ctx context.Context, from *models.ConnectionType, to *models.ConnectionType) error {

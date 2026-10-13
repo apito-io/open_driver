@@ -7,7 +7,7 @@ import (
 	_const "github.com/apito-io/engine/const"
 	"github.com/apito-io/engine/models"
 	"github.com/apito-io/engine/utility"
-	"gitlab.com/apito.io/open_driver/project/sqlcommon"
+	"github.com/apito-io/open_driver/project/sqlcommon"
 )
 
 // OneToOneUniqueIndexDrops lists idx_<table>_<fk>_unique indexes that must go when a relation is no longer 1:1.

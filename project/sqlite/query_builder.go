@@ -18,8 +18,8 @@ import (
 	"github.com/apito-io/types"
 	"github.com/graph-gophers/dataloader"
 	"github.com/tailor-platform/graphql"
-	qutility "gitlab.com/apito.io/open_driver/utility"
-	"gitlab.com/apito.io/open_driver/project/sqlquery"
+	qutility "github.com/apito-io/open_driver/utility"
+	"github.com/apito-io/open_driver/project/sqlquery"
 )
 
 // mergeGroupedSQLPredicates builds `(pred AND …)` groups from ConditionBuilder / hook output.
