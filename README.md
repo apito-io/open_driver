@@ -2,7 +2,13 @@
 
 Apache 2.0 database, cache, and key-value drivers for the Apito engine.
 
-Module path: `github.com/apito-io/open_driver`. This module is Apache 2.0 now. It is not Fair Source.
+Module path: `github.com/apito-io/open_driver`. This module is Apache 2.0.
+
+```bash
+go get github.com/apito-io/open_driver
+```
+
+The Apito engine and Studio use this module.
 
 ## Driver matrix
 

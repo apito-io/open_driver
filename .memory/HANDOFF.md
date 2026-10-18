@@ -1,5 +1,6 @@
 # open_driver — Handoff
 
+- **2026-10-18:** README use section only. Do not push this GitLab checkout to GitHub by accident. Leave `.memory` out of the public diff. `./command.sh save` until asked.
 - **2026-10-14:** **v1.0.28** is the public module path. Engine v2.5.3 and the live Udbhabon and Apito images use it. Do not point Studio at the old GitLab module path for this tag.
 - **2026-10-13:** Local `.env` ports are engine `5055` and console origin `4055`. Restart the process that loads this file before a local connect.
 - **Do not:** Commit if this file's secrets should stay out of a casual diff review. `./command.sh save` until asked.

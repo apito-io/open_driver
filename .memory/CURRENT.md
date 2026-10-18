@@ -1,5 +1,6 @@
 # open_driver — Current
 
+- **2026-10-18:** README now says `go get github.com/apito-io/open_driver` and that the engine and Studio use this module. License stays Apache-2.0. Origin is still GitLab. Uncommitted. Leave `.memory` out of a public push. Ask before `./command.sh save`.
 - **2026-10-14:** Tag **v1.0.28** publishes `module github.com/apito-io/open_driver` and is what engine v2.5.3 requires. The GitHub tag exists for `go get`. Ask before `./command.sh save`.
 - **2026-10-13:** Local `.env` listens on `5055` and allows the console at `http://localhost:4055`. No driver code changed. Ask before `./command.sh save`.
 - **2026-10-11:** Public D1 `RunMigration` creates `projects`, `system_users`, `project_schemas`, and `model_types` only. `pro_projects` and `pro_tenants` are not in this driver. `cmd/oss` builds a self-hosted binary with memory realtime and a no-op plugin host. LICENSE stays Apache 2.0. Not tagged. Ask before `./command.sh save`.

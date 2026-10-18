@@ -1,5 +1,11 @@
 # open_driver — AI Changelog
 
+## 2026-10-18 — README use section
+
+- **Changed:** README tells callers to `go get github.com/apito-io/open_driver` and says the engine and Studio use the module.
+- **Why:** The public module had no install line.
+- **Affected:** `README.md` only. Apache-2.0 unchanged. Uncommitted.
+
 ## 2026-10-14 — public module path v1.0.28
 
 - **Changed:** Module path is `github.com/apito-io/open_driver`. Tagged **v1.0.28** on GitLab and GitHub.
