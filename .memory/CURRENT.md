@@ -1,5 +1,6 @@
 # open_driver — Current
 
+- **2026-10-14:** Tag **v1.0.28** publishes `module github.com/apito-io/open_driver` and is what engine v2.5.3 requires. The GitHub tag exists for `go get`. Ask before `./command.sh save`.
 - **2026-10-13:** Local `.env` listens on `5055` and allows the console at `http://localhost:4055`. No driver code changed. Ask before `./command.sh save`.
 - **2026-10-11:** Public D1 `RunMigration` creates `projects`, `system_users`, `project_schemas`, and `model_types` only. `pro_projects` and `pro_tenants` are not in this driver. `cmd/oss` builds a self-hosted binary with memory realtime and a no-op plugin host. LICENSE stays Apache 2.0. Not tagged. Ask before `./command.sh save`.
 - **2026-10-11:** `project/sqlquery/relation_migrate.go` copies relation pairs, verifies the set, then drops obsolete FK columns or the pivot. SQLite tests passed for widen, blocked narrow, ownership flip, 1:1 unique-index drop, and idempotent retry. Postgres, MySQL, and MariaDB call that migrator. D1 returns unsupported. Mongo and bbolt are metadata-only. Not tagged. Ask before `./command.sh save`.

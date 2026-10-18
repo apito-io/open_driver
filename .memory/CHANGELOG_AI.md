@@ -1,5 +1,11 @@
 # open_driver — AI Changelog
 
+## 2026-10-14 — public module path v1.0.28
+
+- **Changed:** Module path is `github.com/apito-io/open_driver`. Tagged **v1.0.28** on GitLab and GitHub.
+- **Why:** The engine and open-core import that path, and Studio fetches the tag.
+- **Affected:** `go.mod` and import sites. Engine v2.5.3 requires this tag. Ask before `./command.sh save`.
+
 ## 2026-10-13 — local ports
 
 - **Changed:** Local `.env` uses `SERVE_PORT=5055` and `CORS_ORIGIN=http://localhost:4055`.
