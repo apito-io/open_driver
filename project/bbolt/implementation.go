@@ -669,6 +669,9 @@ func (b *BBoltDriver) ConnectBuilder(ctx context.Context, param *models.CommonSy
 	if param.ConDisParam == nil || len(param.ConDisParam) == 0 {
 		return nil
 	}
+	if err := utility.ValidateProjectUserRelationParams(param.Role, param.UserID, param.ConDisParam, false); err != nil {
+		return err
+	}
 
 	for _, connParam := range param.ConDisParam {
 		var filteredIDs []string
@@ -728,6 +731,9 @@ func (b *BBoltDriver) DisconnectBuilder(ctx context.Context, param *models.Commo
 	if param.ConDisParam == nil || len(param.ConDisParam) == 0 {
 		return nil
 	}
+	if err := utility.ValidateProjectUserRelationParams(param.Role, param.UserID, param.ConDisParam, true); err != nil {
+		return err
+	}
 
 	for _, connParam := range param.ConDisParam {
 		if len(connParam.ActionIDs) > 0 {
@@ -786,6 +792,9 @@ func (b *BBoltDriver) GetSingleProjectDocument(ctx context.Context, param *model
 	}
 
 	if !bboltDocPassesQueryHook(b.Conf, param, &doc) {
+		return nil, errors.New("no result found with this request id")
+	}
+	if !bboltOwnReadAllowed(param, &doc) {
 		return nil, errors.New("no result found with this request id")
 	}
 
@@ -906,6 +915,9 @@ func (b *BBoltDriver) QueryMultiDocumentOfProject(ctx context.Context, param *mo
 			continue
 		}
 		if !bboltDocPassesQueryHook(b.Conf, param, doc) {
+			continue
+		}
+		if !bboltOwnReadAllowed(param, doc) {
 			continue
 		}
 		filtered = append(filtered, doc)
@@ -1163,7 +1175,7 @@ func (b *BBoltDriver) CountDocOfProjectBytes(ctx context.Context, param *models.
 
 // CountMultiDocumentOfProject counts documents in a project
 func (b *BBoltDriver) CountMultiDocumentOfProject(ctx context.Context, param *models.CommonSystemParams, previewModel bool) (int, error) {
-	collectionName := param.Model.Name
+	collectionName := fmt.Sprintf("p_%s", param.ProjectID)
 
 	var count int
 	err := b.Store.View(func(tx *apitobolt.Tx) error {
@@ -1173,9 +1185,19 @@ func (b *BBoltDriver) CountMultiDocumentOfProject(ctx context.Context, param *mo
 			return err
 		}
 
-		count = len(docs)
-
-		// TODO: Apply where filter from param.ResolveParams
+		for i := range docs {
+			doc := &docs[i]
+			if param.Model != nil && doc.Type != "" && doc.Type != param.Model.Name {
+				continue
+			}
+			if !bboltDocPassesQueryHook(b.Conf, param, doc) {
+				continue
+			}
+			if !bboltOwnReadAllowed(param, doc) {
+				continue
+			}
+			count++
+		}
 
 		return nil
 	})

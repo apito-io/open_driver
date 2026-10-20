@@ -867,14 +867,31 @@ func (d *Driver) UpdateDocumentOfProject(ctx context.Context, param *models.Comm
 	return d.runInTxOrBypass(ctx, func(ctx context.Context, tx bun.IDB) error {
 		q := tx.NewUpdate().Table(tableName).Where("id = ?", doc.ID)
 		q = applyBunHookWheresUpdate(d.Conf, ctx, param, q)
-		if _, err := q.Model(&data).Exec(ctx); err != nil {
+		clause, args, ownErr := sqlquery.OwnMutationConstraint(param, "update")
+		if ownErr != nil {
+			return ownErr
+		}
+		if clause != "" {
+			q = q.Where(clause, args...)
+		}
+		result, err := q.Model(&data).Exec(ctx)
+		if err != nil {
 			return err
+		}
+		affected, err := result.RowsAffected()
+		if err != nil {
+			return err
+		}
+		// Metadata is part of the protected mutation. If the ownership or
+		// tenant predicate matched no document, do not mutate the audit row.
+		if affected == 0 {
+			return nil
 		}
 		metaData := map[string]interface{}{
 			"updated_at": utility.GetCurrentTime(),
 			"updated_by": param.UserID,
 		}
-		_, err := tx.NewUpdate().Table("meta").Where("doc_id = ?", doc.ID).Model(&metaData).Exec(ctx)
+		_, err = tx.NewUpdate().Table("meta").Where("doc_id = ?", doc.ID).Model(&metaData).Exec(ctx)
 		return err
 	})
 }
@@ -888,29 +905,55 @@ func (d *Driver) DeleteDocumentFromProject(ctx context.Context, param *models.Co
 
 	if models.ModelIsCommon(param.Model) {
 		return d.runInTxOrBypass(ctx, func(ctx context.Context, tx bun.IDB) error {
-			_, err := tx.NewUpdate().Table("meta").
+			if err := sqlquery.EnforceOwnDocumentID(param, "delete", param.DocumentID); err != nil {
+				return err
+			}
+			q := tx.NewUpdate().Table("meta").
 				Set("status = ?", "deleted").
 				Set("updated_at = ?", utility.GetCurrentTime()).
-				Where("doc_id = ?", param.DocumentID).
-				Exec(ctx)
+				Where("doc_id = ?", param.DocumentID)
+			metaClause, metaArgs, metaErr := sqlquery.OwnMetadataConstraint(param, "delete")
+			if metaErr != nil {
+				return metaErr
+			}
+			if metaClause != "" {
+				q = q.Where(metaClause, metaArgs...)
+			}
+			_, err := q.Exec(ctx)
 			return err
 		})
 	}
 
 	return d.runInTxOrBypass(ctx, func(ctx context.Context, tx bun.IDB) error {
+		q := tx.NewDelete().Table(tableName).Where("id = ?", param.DocumentID)
+		q = applyBunHookWheresDelete(d.Conf, ctx, param, q)
+		clause, args, ownErr := sqlquery.OwnMutationConstraint(param, "delete")
+		if ownErr != nil {
+			return ownErr
+		}
+		if clause != "" {
+			q = q.Where(clause, args...)
+		}
+		result, err := q.Exec(ctx)
+		if err != nil {
+			return err
+		}
+		affected, err := result.RowsAffected()
+		if err != nil {
+			return err
+		}
+		// Authorization/tenant predicates are part of the document delete.
+		// Do not remove revisions or metadata unless the protected row was
+		// actually deleted.
+		if affected == 0 {
+			return nil
+		}
 		if _, err := tx.NewDelete().Table("document_revisions").
 			Where("original_doc_id = ? OR id = ?", param.DocumentID, param.DocumentID).
 			Exec(ctx); err != nil {
 			return err
 		}
-
-		if _, err := tx.NewDelete().Table("meta").Where("doc_id = ?", param.DocumentID).Exec(ctx); err != nil {
-			return err
-		}
-
-		q := tx.NewDelete().Table(tableName).Where("id = ?", param.DocumentID)
-		q = applyBunHookWheresDelete(d.Conf, ctx, param, q)
-		_, err := q.Exec(ctx)
+		_, err = tx.NewDelete().Table("meta").Where("doc_id = ?", param.DocumentID).Exec(ctx)
 		return err
 	})
 }

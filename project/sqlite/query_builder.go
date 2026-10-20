@@ -15,11 +15,11 @@ import (
 	"github.com/apito-io/engine/database/helper"
 	"github.com/apito-io/engine/models"
 	"github.com/apito-io/engine/utility"
+	"github.com/apito-io/open_driver/project/sqlquery"
+	qutility "github.com/apito-io/open_driver/utility"
 	"github.com/apito-io/types"
 	"github.com/graph-gophers/dataloader"
 	"github.com/tailor-platform/graphql"
-	qutility "github.com/apito-io/open_driver/utility"
-	"github.com/apito-io/open_driver/project/sqlquery"
 )
 
 // mergeGroupedSQLPredicates builds `(pred AND …)` groups from ConditionBuilder / hook output.
@@ -1384,8 +1384,12 @@ func rootResolverQueryBuilder(cfg *models.Config, param *models.CommonSystemPara
 
 	// filter based on roles (own applies to list and count)
 	if ownFilter {
-		filters["AND"] = append(filters["AND"], `y.created_by = ?`)
-		sqlArgs = append(sqlArgs, param.UserID)
+		ownPredicate, ownArgs, ownErr := sqlquery.OwnReadConstraint(param, "x", "y")
+		if ownErr != nil {
+			return "", nil, ownErr
+		}
+		filters["AND"] = append(filters["AND"], ownPredicate)
+		sqlArgs = append(sqlArgs, ownArgs...)
 	}
 	if err := mergeQueryFilterHookSQL(cfg, param, filters, "x", &sqlArgs); err != nil {
 		return "", nil, err

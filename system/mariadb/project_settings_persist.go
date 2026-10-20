@@ -32,6 +32,7 @@ func ensureProjectSettingsSQLColumns(ctx context.Context, db *bun.DB) error {
 			`ALTER TABLE projects ADD COLUMN ` + colPlugins + ` TEXT`,
 			`ALTER TABLE project_settings ADD COLUMN idle_tenant_retention_days INTEGER NOT NULL DEFAULT 90`,
 			`ALTER TABLE project_settings ADD COLUMN auto_soft_delete_idle_tenants INTEGER NOT NULL DEFAULT 0`,
+			`ALTER TABLE project_settings ADD COLUMN client_runtime TEXT`,
 		}
 		for _, q := range stmts {
 			if err := sqlcommon.ExecAlterIgnoreDuplicate(ctx, db, q); err != nil {
@@ -45,6 +46,7 @@ func ensureProjectSettingsSQLColumns(ctx context.Context, db *bun.DB) error {
 			`ALTER TABLE projects ADD COLUMN IF NOT EXISTS ` + colPlugins + ` JSONB`,
 			`ALTER TABLE project_settings ADD COLUMN IF NOT EXISTS idle_tenant_retention_days INTEGER NOT NULL DEFAULT 90`,
 			`ALTER TABLE project_settings ADD COLUMN IF NOT EXISTS auto_soft_delete_idle_tenants BOOLEAN NOT NULL DEFAULT false`,
+			`ALTER TABLE project_settings ADD COLUMN IF NOT EXISTS client_runtime JSONB`,
 		}
 		for _, q := range stmts {
 			if _, err := db.ExecContext(ctx, q); err != nil {
@@ -58,6 +60,7 @@ func ensureProjectSettingsSQLColumns(ctx context.Context, db *bun.DB) error {
 			`ALTER TABLE projects ADD COLUMN ` + colPlugins + ` JSON NULL`,
 			`ALTER TABLE project_settings ADD COLUMN idle_tenant_retention_days INT NOT NULL DEFAULT 90`,
 			`ALTER TABLE project_settings ADD COLUMN auto_soft_delete_idle_tenants TINYINT(1) NOT NULL DEFAULT 0`,
+			`ALTER TABLE project_settings ADD COLUMN client_runtime JSON NULL`,
 		}
 		for _, q := range stmts {
 			if err := sqlcommon.ExecAlterIgnoreDuplicate(ctx, db, q); err != nil {

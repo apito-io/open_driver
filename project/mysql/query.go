@@ -13,10 +13,10 @@ import (
 	_const "github.com/apito-io/engine/const"
 	"github.com/apito-io/engine/models"
 	"github.com/apito-io/engine/utility"
+	"github.com/apito-io/open_driver/project/sqlquery"
 	"github.com/apito-io/types"
 	"github.com/tailor-platform/graphql"
 	"github.com/uptrace/bun"
-	"github.com/apito-io/open_driver/project/sqlquery"
 )
 
 func (d *Driver) maybeEnsureRelationDDL(ctx context.Context, param *models.CommonSystemParams) error {
@@ -388,6 +388,9 @@ func (d *Driver) ConnectBuilder(ctx context.Context, root *models.CommonSystemPa
 	if root == nil || len(root.ConDisParam) == 0 {
 		return nil
 	}
+	if err := utility.ValidateProjectUserRelationParams(root.Role, root.UserID, root.ConDisParam, false); err != nil {
+		return err
+	}
 	if err := d.maybeEnsureRelationDDLForMutation(ctx, root); err != nil {
 		return err
 	}
@@ -507,6 +510,9 @@ func (d *Driver) ConnectBuilder(ctx context.Context, root *models.CommonSystemPa
 func (d *Driver) DisconnectBuilder(ctx context.Context, param *models.CommonSystemParams) error {
 	if param == nil || len(param.ConDisParam) == 0 {
 		return nil
+	}
+	if err := utility.ValidateProjectUserRelationParams(param.Role, param.UserID, param.ConDisParam, true); err != nil {
+		return err
 	}
 	if err := d.maybeEnsureRelationDDLForMutation(ctx, param); err != nil {
 		return err

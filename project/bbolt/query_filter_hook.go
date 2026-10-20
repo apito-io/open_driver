@@ -8,6 +8,7 @@ import (
 
 	apitobolt "github.com/apito-io/apitoBolt"
 	"github.com/apito-io/engine/models"
+	"github.com/apito-io/engine/utility"
 	"github.com/apito-io/types"
 )
 
@@ -137,6 +138,24 @@ func bboltDocPassesQueryHook(cfg *models.Config, param *models.CommonSystemParam
 		}
 	}
 	return true
+}
+
+// bboltOwnReadAllowed applies the same canonical ownership rule as the
+// resolver. Drivers must retain this boundary because Bolt can be called
+// without going through the GraphQL resolver.
+func bboltOwnReadAllowed(param *models.CommonSystemParams, doc *types.DefaultDocumentStructure) bool {
+	if param == nil {
+		return false
+	}
+	userID, ownRead := utility.OwnReadUserID(param)
+	if !ownRead {
+		return true
+	}
+	modelName := ""
+	if param.Model != nil {
+		modelName = param.Model.Name
+	}
+	return utility.OwnDocumentBelongsToUser(doc, modelName, userID)
 }
 
 func runDocumentPreInsertHook(cfg *models.Config, ctx context.Context, param *models.CommonSystemParams, row map[string]interface{}) error {

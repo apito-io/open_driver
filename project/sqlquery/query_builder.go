@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	qutility "github.com/apito-io/open_driver/utility"
 	"github.com/apito-io/engine/models"
 	"github.com/apito-io/engine/utility"
+	qutility "github.com/apito-io/open_driver/utility"
 	"github.com/apito-io/types"
 	"github.com/graph-gophers/dataloader"
 	"github.com/tailor-platform/graphql"
@@ -824,8 +824,12 @@ func RootResolverQueryBuilder(cfg *models.Config, param *models.CommonSystemPara
 
 	// filter based on roles (own applies to list and count)
 	if ownFilter {
-		filters["AND"] = append(filters["AND"], `y.created_by = ?`)
-		sqlArgs = append(sqlArgs, param.UserID)
+		ownPredicate, ownArgs, ownErr := OwnReadConstraint(param, "x", "y")
+		if ownErr != nil {
+			return "", nil, ownErr
+		}
+		filters["AND"] = append(filters["AND"], ownPredicate)
+		sqlArgs = append(sqlArgs, ownArgs...)
 	}
 	if models.ModelIsCommon(param.Model) {
 		filters["AND"] = append(filters["AND"], CommonModelExcludeDeletedSQL())

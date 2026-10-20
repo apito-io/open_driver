@@ -471,6 +471,9 @@ func (m *MongoDriver) GetSingleProjectDocument(ctx context.Context, param *model
 		}
 		return nil, err
 	}
+	if !mongoOwnReadAllowed(param, &doc) {
+		return nil, errors.New("no result found with this request id")
+	}
 
 	// Handle payload for non-system requests
 	if !param.IsSystemRequest {
@@ -498,17 +501,25 @@ func (m *MongoDriver) QueryMultiDocumentOfProject(ctx context.Context, param *mo
 
 	collection := m.Database.Collection(collectionName)
 	findOpts := options.Find()
+	_, ownRead := utility.OwnReadUserID(param)
 
 	// Build filter
 	filter := bson.M{}
+	if param.Model != nil && strings.TrimSpace(param.Model.Name) != "" {
+		filter["type"] = param.Model.Name
+	}
 
 	// Apply pagination if provided in resolve params
 	if param.ResolveParams != nil {
 		if skip, ok := param.ResolveParams.Args["skip"].(int); ok {
-			findOpts.SetSkip(int64(skip))
+			if !ownRead {
+				findOpts.SetSkip(int64(skip))
+			}
 		}
 		if limit, ok := param.ResolveParams.Args["limit"].(int); ok {
-			findOpts.SetLimit(int64(limit))
+			if !ownRead {
+				findOpts.SetLimit(int64(limit))
+			}
 		}
 
 		// Apply sorting if provided
@@ -532,6 +543,7 @@ func (m *MongoDriver) QueryMultiDocumentOfProject(ctx context.Context, param *mo
 		}
 	}
 	mergeQueryFilterBSON(m.Conf, param, filter)
+	mergeOwnReadFilterBSON(param, filter)
 
 	cursor, err := collection.Find(ctx, filter, findOpts)
 	if err != nil {
@@ -542,6 +554,15 @@ func (m *MongoDriver) QueryMultiDocumentOfProject(ctx context.Context, param *mo
 	var results []*types.DefaultDocumentStructure
 	if err = cursor.All(ctx, &results); err != nil {
 		return nil, err
+	}
+	if ownRead {
+		filtered := results[:0]
+		for _, doc := range results {
+			if mongoOwnReadAllowed(param, doc) {
+				filtered = append(filtered, doc)
+			}
+		}
+		results = applyMongoOwnReadPagination(filtered, param)
 	}
 
 	// Handle payload for non-system requests
@@ -556,14 +577,42 @@ func (m *MongoDriver) QueryMultiDocumentOfProject(ctx context.Context, param *mo
 
 // CountMultiDocumentOfProject counts documents in a project
 func (m *MongoDriver) CountMultiDocumentOfProject(ctx context.Context, param *models.CommonSystemParams, previewModel bool) (int, error) {
-	collection := m.Database.Collection(param.Model.Name)
+	collection := m.Database.Collection(fmt.Sprintf("p_%s", param.ProjectID))
 	filter := bson.M{}
 
 	// Apply filter if provided in resolve params
 	if param.ResolveParams != nil {
 		if where, ok := param.ResolveParams.Args["where"].(map[string]interface{}); ok {
-			filter = where
+			for key, value := range where {
+				filter[key] = value
+			}
 		}
+	}
+	if param.Model != nil && strings.TrimSpace(param.Model.Name) != "" {
+		filter["type"] = param.Model.Name
+	}
+	mergeQueryFilterBSON(m.Conf, param, filter)
+	_, ownRead := utility.OwnReadUserID(param)
+	mergeOwnReadFilterBSON(param, filter)
+
+	if ownRead {
+		cursor, err := collection.Find(ctx, filter)
+		if err != nil {
+			return 0, err
+		}
+		defer cursor.Close(ctx)
+
+		var docs []*types.DefaultDocumentStructure
+		if err := cursor.All(ctx, &docs); err != nil {
+			return 0, err
+		}
+		count := 0
+		for _, doc := range docs {
+			if mongoOwnReadAllowed(param, doc) {
+				count++
+			}
+		}
+		return count, nil
 	}
 
 	count, err := collection.CountDocuments(ctx, filter)
@@ -976,6 +1025,9 @@ func (m *MongoDriver) ConnectBuilder(ctx context.Context, param *models.CommonSy
 	if param.ConDisParam == nil || len(param.ConDisParam) == 0 {
 		return nil
 	}
+	if err := utility.ValidateProjectUserRelationParams(param.Role, param.UserID, param.ConDisParam, false); err != nil {
+		return err
+	}
 
 	for _, connParam := range param.ConDisParam {
 		var filteredIDs []string
@@ -1034,6 +1086,9 @@ func (m *MongoDriver) ConnectBuilder(ctx context.Context, param *models.CommonSy
 func (m *MongoDriver) DisconnectBuilder(ctx context.Context, param *models.CommonSystemParams) error {
 	if param.ConDisParam == nil || len(param.ConDisParam) == 0 {
 		return nil
+	}
+	if err := utility.ValidateProjectUserRelationParams(param.Role, param.UserID, param.ConDisParam, true); err != nil {
+		return err
 	}
 
 	for _, connParam := range param.ConDisParam {
@@ -1411,8 +1466,32 @@ func (m *MongoDriver) CountDocOfProject(ctx context.Context, param *models.Commo
 			}
 		}
 	}
+	if param.Model != nil && strings.TrimSpace(param.Model.Name) != "" {
+		filter["type"] = param.Model.Name
+	}
 	mergeQueryFilterBSON(m.Conf, param, filter)
+	_, ownRead := utility.OwnReadUserID(param)
+	mergeOwnReadFilterBSON(param, filter)
 
+	if ownRead {
+		cursor, err := collection.Find(ctx, filter)
+		if err != nil {
+			return nil, err
+		}
+		defer cursor.Close(ctx)
+
+		var docs []*types.DefaultDocumentStructure
+		if err := cursor.All(ctx, &docs); err != nil {
+			return nil, err
+		}
+		count := 0
+		for _, doc := range docs {
+			if mongoOwnReadAllowed(param, doc) {
+				count++
+			}
+		}
+		return map[string]interface{}{"total": count}, nil
+	}
 	count, err := collection.CountDocuments(ctx, filter)
 	if err != nil {
 		return nil, err
@@ -1458,7 +1537,31 @@ func (m *MongoDriver) AggregateDocOfProject(ctx context.Context, param *models.C
 			}
 		}
 	}
+	if param.Model != nil && strings.TrimSpace(param.Model.Name) != "" {
+		match["type"] = param.Model.Name
+	}
 	mergeQueryFilterBSON(m.Conf, param, match)
+	_, ownRead := utility.OwnReadUserID(param)
+	mergeOwnReadFilterBSON(param, match)
+	if ownRead {
+		cursor, err := collection.Find(ctx, match)
+		if err != nil {
+			return nil, err
+		}
+		defer cursor.Close(ctx)
+
+		var docs []*types.DefaultDocumentStructure
+		if err := cursor.All(ctx, &docs); err != nil {
+			return nil, err
+		}
+		count := 0
+		for _, doc := range docs {
+			if mongoOwnReadAllowed(param, doc) {
+				count++
+			}
+		}
+		return map[string]interface{}{"count": count}, nil
+	}
 	if len(match) > 0 {
 		pipeline = append(pipeline, bson.D{bson.E{Key: "$match", Value: match}})
 	}
